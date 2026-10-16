@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "npm run build:web && python3 -m http.server 8080 --directory web"],
+      "port": 8080
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+type: chord
+notation: x02220
+label: A Major
+root: "5"
+tuning: EADGBE
+stylesheet: |
+  circle.root { fill: #d62828; }
+  .chord-title { fill: #457b9d; }

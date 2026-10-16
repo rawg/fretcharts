@@ -1,0 +1,1134 @@
+/* Dark is this page's default/native look (not just a fallback) --
+   deliberately unconditional so it renders consistently for anyone
+   without an OS preference either way. The light variant right below
+   exists purely to respect prefers-color-scheme: light for people who've
+   actually asked for light pages system-wide; it's the one branch that's
+   conditional, not the other way around. */
+:root {
+  --color-bg: #131316;
+  --color-bg-highlight: rgba(255, 255, 255, 0.04);
+  --color-surface: #1c1c21;
+  --color-surface-input: #131316;
+  --color-border: #2f2f37;
+  --color-text: #f2f2f4;
+  --color-text-muted: #8a8a94;
+  --color-primary: #ef8a3d;
+  --color-primary-hover: #f6a35f;
+  --color-primary-gradient: linear-gradient(135deg, #f2a054, #e2701c);
+  --color-primary-gradient-hover: linear-gradient(135deg, #f6b06c, #ef7d24);
+  --color-primary-contrast: #ffffff;
+  --color-error-bg: rgba(240, 82, 82, 0.12);
+  --color-error-border: rgba(240, 82, 82, 0.35);
+  --color-error-text: #ff8f8f;
+  --color-loading-bg: rgba(239, 138, 61, 0.12);
+  --color-loading-text: #f2a054;
+  --color-warning-bg: rgba(217, 180, 40, 0.12);
+  --color-warning-border: rgba(217, 180, 40, 0.35);
+  --color-warning-text: #e8c547;
+  --radius: 10px;
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 24px;
+  --spacing-6: 32px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-bg: #f7f5f2;
+    --color-bg-highlight: rgba(28, 28, 33, 0.03);
+    --color-surface: #ffffff;
+    --color-surface-input: #fbfaf8;
+    --color-border: #e0ddd6;
+    --color-text: #1c1c21;
+    --color-text-muted: #6b6b73;
+    --color-primary: #d35400;
+    --color-primary-hover: #b8480e;
+    --color-primary-gradient: linear-gradient(135deg, #ef8a3d, #d35400);
+    --color-primary-gradient-hover: linear-gradient(135deg, #e2701c, #b8480e);
+    --color-primary-contrast: #ffffff;
+    --color-error-bg: rgba(214, 40, 40, 0.08);
+    --color-error-border: rgba(214, 40, 40, 0.3);
+    --color-error-text: #b91c1c;
+    --color-loading-bg: rgba(211, 84, 0, 0.1);
+    --color-loading-text: #b8480e;
+    --color-warning-bg: rgba(161, 129, 12, 0.08);
+    --color-warning-border: rgba(161, 129, 12, 0.3);
+    --color-warning-text: #8a6d0a;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(242, 160, 84, 0.05), transparent 35%),
+    radial-gradient(circle at 88% 85%, var(--color-bg-highlight), transparent 40%),
+    var(--color-bg);
+  background-attachment: fixed;
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.page {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: var(--spacing-5) var(--spacing-4) var(--spacing-6);
+}
+
+.page-header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--spacing-1) var(--spacing-3);
+  margin-bottom: var(--spacing-4);
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.page-header h1 .accent {
+  color: var(--color-primary);
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+/* ---------------- Mode toggle ---------------- */
+
+.mode-toggle {
+  display: flex;
+  gap: var(--spacing-1);
+  margin-bottom: var(--spacing-5);
+  border-bottom: 1px solid var(--color-border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.mode-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding: var(--spacing-3) var(--spacing-4);
+  margin-bottom: -1px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.mode-btn:hover {
+  color: var(--color-text);
+}
+
+.mode-btn.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* Separates Start | the builders | File. */
+.mode-divider {
+  flex: 0 0 auto;
+  width: 1px;
+  margin: var(--spacing-2) var(--spacing-2) var(--spacing-2);
+  background: var(--color-border);
+}
+
+.mode-panel {
+  display: none;
+}
+
+.mode-panel.active {
+  display: block;
+}
+
+/* ---------------- Panel layout: form beside its result ----------------
+   Stacked on narrow screens; side by side once there's room, with the
+   result column sticky so a render is visible without scrolling back up. */
+
+.panel-layout {
+  display: grid;
+  gap: var(--spacing-5);
+}
+
+.panel-intro {
+  margin: 0 0 var(--spacing-4);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+@media (min-width: 980px) {
+  .panel-layout {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .panel-output {
+    position: sticky;
+    top: var(--spacing-4);
+    max-height: calc(100vh - var(--spacing-6));
+    overflow-y: auto;
+  }
+
+  /* Empty-state placeholder; ::before content doesn't break :empty. */
+  .panel-output .result-box:empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 240px;
+    background: none;
+    border-style: dashed;
+  }
+
+  .panel-output .result-box:empty::before {
+    content: "Rendered chart appears here";
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+  }
+}
+
+/* ---------------- Quick-start examples ---------------- */
+
+.quick-examples {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-4);
+}
+
+.quick-examples-label {
+  font-variant: small-caps;
+  letter-spacing: 0.03em;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.example-btn {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: var(--spacing-1) var(--spacing-3);
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.example-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* ---------------- Form structure ---------------- */
+
+fieldset {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  padding: var(--spacing-4);
+  margin: 0 0 var(--spacing-4);
+}
+
+legend {
+  padding: 0 var(--spacing-2);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+details.advanced {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  padding: var(--spacing-3) var(--spacing-4);
+  margin: 0 0 var(--spacing-4);
+}
+
+details.advanced summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+details.advanced summary::marker {
+  color: var(--color-primary);
+}
+
+details.advanced[open] summary {
+  margin-bottom: var(--spacing-3);
+}
+
+.summary-note {
+  margin-left: var(--spacing-2);
+  font-weight: normal;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+/* Consecutive collapsible sections share one card, divided by rules,
+   instead of each being its own boxed card. */
+.disclosures {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  margin: 0 0 var(--spacing-4);
+}
+
+.disclosures > details.advanced {
+  border: none;
+  border-radius: 0;
+  background: none;
+  margin: 0;
+}
+
+.disclosures > details.advanced + details.advanced {
+  border-top: 1px solid var(--color-border);
+}
+
+/* Inline "more info" toggle for long reference hints. */
+.hint-details {
+  margin-top: var(--spacing-1);
+}
+
+.hint-details summary {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  width: fit-content;
+}
+
+.hint-details summary:hover {
+  color: var(--color-primary);
+}
+
+.field {
+  margin-bottom: var(--spacing-4);
+}
+
+.field:last-child {
+  margin-bottom: 0;
+}
+
+/* Short fields side by side; wraps to one column on narrow screens. */
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
+  gap: var(--spacing-3) var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+}
+
+.field-grid-wide {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+.field-grid:last-child {
+  margin-bottom: 0;
+}
+
+.field-grid .field {
+  margin-bottom: 0;
+}
+
+.fieldset-intro {
+  margin: 0 0 var(--spacing-3);
+}
+
+.field-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2) var(--spacing-5);
+  align-items: center;
+}
+
+details.advanced .field-row + .hint {
+  margin-top: var(--spacing-2);
+}
+
+label {
+  display: block;
+  font-variant: small-caps;
+  letter-spacing: 0.03em;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-1);
+}
+
+.required {
+  color: var(--color-error-text);
+}
+
+input[type="text"],
+input[type="number"],
+textarea,
+select {
+  width: 100%;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface-input);
+  color: var(--color-text);
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+input[type="text"]::placeholder,
+input[type="number"]::placeholder,
+textarea::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.7;
+}
+
+textarea {
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--color-primary);
+}
+
+.checkbox-label,
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-variant: normal;
+  letter-spacing: normal;
+  font-weight: normal;
+  margin-bottom: 0;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+/* Toned down a pinch from the full-brightness text color above -- these
+   (Label pitches/Label tuning) read a little harsh at full white next to
+   everything else's more muted palette. */
+.checkbox-label {
+  opacity: 0.82;
+}
+
+.checkbox-label input,
+.radio-label input {
+  margin: 0;
+}
+
+.hint {
+  margin: var(--spacing-1) 0 0;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.hint code {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 1px 4px;
+  font-size: 0.8rem;
+}
+
+/* ---------------- Start: overview ---------------- */
+
+.overview {
+  margin-bottom: var(--spacing-6);
+}
+
+.overview-lede {
+  margin: 0 0 var(--spacing-5);
+  font-size: 1.05rem;
+}
+
+.overview-grid {
+  display: grid;
+  gap: var(--spacing-4);
+}
+
+@media (min-width: 760px) {
+  .overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.overview-section {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  padding: var(--spacing-4);
+}
+
+.overview-section h2 {
+  margin: 0 0 var(--spacing-3);
+  font-size: 1rem;
+}
+
+.overview-section p {
+  margin: 0 0 var(--spacing-3);
+  font-size: 0.9rem;
+}
+
+.overview-section p:last-child {
+  margin-bottom: 0;
+}
+
+.overview-section code {
+  overflow-wrap: anywhere;
+}
+
+.overview-section a {
+  color: var(--color-primary);
+}
+
+.overview-tabs {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--spacing-2) var(--spacing-3);
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.overview-tabs dt {
+  font-weight: 600;
+}
+
+.overview-tabs dd {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.gallery-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  margin: 0 0 var(--spacing-2);
+}
+
+.gallery-heading h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+/* ---------------- Gallery ----------------
+   One card per example, stacked vertically: the FretCharts file on the
+   left, its render on the right (stacked on narrow screens). */
+
+.gallery {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-6);
+}
+
+.gallery-card {
+  padding-top: var(--spacing-5);
+  border-top: 1px solid var(--color-border);
+}
+
+.gallery-card:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.gallery-card-header {
+  margin-bottom: var(--spacing-3);
+}
+
+.gallery-card-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.gallery-kind {
+  font-variant: small-caps;
+  letter-spacing: 0.03em;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.gallery-description {
+  margin: var(--spacing-1) 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.gallery-card-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-4);
+}
+
+.gallery-source {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+.gallery-source .gallery-document {
+  margin: 0;
+  width: 100%;
+  box-sizing: border-box;
+  max-height: 420px;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+/* Reserve space before the render lands so cards don't jump. */
+.gallery-output .result-box:empty {
+  display: block;
+  min-height: 200px;
+}
+
+@media (min-width: 980px) {
+  .gallery-card-body {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+/* ---------------- Document preview ---------------- */
+
+.document-preview-text {
+  margin: var(--spacing-2) 0 0;
+  padding: var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+/* ---------------- JSON-or-per-string fields ---------------- */
+
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-1);
+}
+
+.field-label-row label {
+  margin-bottom: 0;
+}
+
+/* Segmented radio control: SVG/PNG, JSON/Per string. The radio itself is
+   visually hidden but still focusable and keyboard-operable. */
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface-input);
+  overflow: hidden;
+}
+
+.segmented label {
+  position: relative;
+  margin: 0;
+  padding: var(--spacing-2) var(--spacing-3);
+  font-variant: normal;
+  letter-spacing: normal;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.segmented label + label {
+  border-left: 1px solid var(--color-border);
+}
+
+.segmented input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.segmented label:hover {
+  color: var(--color-text);
+}
+
+.segmented label:has(input:checked) {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+}
+
+.segmented label:has(input:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.segmented-sm label {
+  padding: 2px var(--spacing-2);
+  font-size: 0.75rem;
+}
+
+.select-sm {
+  width: auto;
+  padding: 2px var(--spacing-2);
+  font-size: 0.8rem;
+}
+
+.per-string-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
+.per-string-input {
+  width: 3.5rem;
+}
+
+/* Note classes tend to hold longer text (CSS class names) than string
+   labels or a single finger digit, so give those inputs more room. */
+.per-string-grid-wide .per-string-input {
+  width: auto;
+  min-width: 7ex;
+}
+
+.per-string-input label {
+  text-align: center;
+  font-size: 0.72rem;
+  margin-bottom: 2px;
+}
+
+.per-string-input input {
+  text-align: center;
+  padding: var(--spacing-2) var(--spacing-1);
+}
+
+/* ---------------- Scale chart: marker rows ---------------- */
+
+/* Header and rows share one column template so they stay aligned; the
+   numeric columns are narrower and Shape gets room for its option text. */
+.marker-row-header,
+.marker-row {
+  display: grid;
+  grid-template-columns: 0.8fr 0.8fr 1fr 1fr 0.8fr 1.4fr 1.75rem;
+  gap: var(--spacing-2);
+  align-items: center;
+  margin-bottom: var(--spacing-2);
+}
+
+.marker-row-header {
+  font-variant: small-caps;
+  letter-spacing: 0.03em;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.marker-row select,
+.marker-row input {
+  min-width: 0;
+  padding-left: var(--spacing-2);
+  padding-right: var(--spacing-1);
+}
+
+.marker-row-remove {
+  flex: 0 0 auto;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface-input);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.marker-row-remove:hover {
+  color: var(--color-error-text);
+  border-color: var(--color-error-border);
+}
+
+/* ---------------- Scale chart / Neck diagram: bracket rows ---------------- */
+
+.bracket-row-header,
+.bracket-row {
+  display: grid;
+  grid-template-columns: 0.8fr 0.8fr 1.6fr 1fr 1.75rem;
+  gap: var(--spacing-2);
+  align-items: center;
+  margin-bottom: var(--spacing-2);
+}
+
+.bracket-row-header {
+  font-variant: small-caps;
+  letter-spacing: 0.03em;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+/* No rows yet (brackets are optional) -- a header over nothing reads as broken. */
+.bracket-row-header:has(+ :empty) {
+  display: none;
+}
+
+.bracket-row input {
+  min-width: 0;
+  padding-left: var(--spacing-2);
+  padding-right: var(--spacing-1);
+}
+
+.btn-secondary {
+  background: var(--color-surface-input);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--spacing-2) var(--spacing-4);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-sm {
+  padding: var(--spacing-1) var(--spacing-3);
+  font-size: 0.85rem;
+}
+
+.result-extras {
+  margin-top: var(--spacing-3);
+}
+
+.result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-3);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-3);
+}
+
+/* Output format sits at the left; the buttons group at the right. */
+.actions .format-toggle {
+  margin-right: auto;
+}
+
+.share-status {
+  text-align: right;
+  word-break: break-all;
+}
+
+button[type="submit"] {
+  background: var(--color-primary-gradient);
+  color: var(--color-primary-contrast);
+  border: none;
+  border-radius: var(--radius);
+  padding: var(--spacing-3) var(--spacing-5);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button[type="submit"]:hover:not(:disabled) {
+  background: var(--color-primary-gradient-hover);
+}
+
+button[type="submit"]:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* ---------------- Status boxes ---------------- */
+
+.hidden {
+  display: none !important;
+}
+
+.error-box {
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  color: var(--color-error-text);
+  border-radius: var(--radius);
+  padding: var(--spacing-3) var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+  font-weight: 500;
+}
+
+.loading-box {
+  background: var(--color-loading-bg);
+  color: var(--color-loading-text);
+  border-radius: var(--radius);
+  padding: var(--spacing-3) var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+  font-weight: 500;
+}
+
+.warning-box {
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
+  color: var(--color-warning-text);
+  border-radius: var(--radius);
+  padding: var(--spacing-3) var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+  font-weight: 500;
+}
+
+.warning-box:empty {
+  display: none;
+}
+
+/* Deliberately NOT dark, unlike the rest of this theme: the rendered
+   chart's default (no custom --stylesheet) draws black strings/dots/text
+   on a transparent background, meant to sit on a light page -- a dark
+   result box would make an unstyled chart nearly invisible. A custom
+   stylesheet can still override .chord-chart-background to go dark on
+   purpose; this is just the sane default. */
+.result-box {
+  background: #f5f0e8;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  min-height: 0;
+  padding: var(--spacing-4);
+  overflow-x: auto;
+}
+
+.result-box:empty {
+  display: none;
+}
+
+.result-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--spacing-2);
+}
+
+/* Print-only copy of a grid render -- see buildPrintGrid in app.js. */
+.print-grid {
+  display: none;
+}
+
+.result-box svg,
+.result-box img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* ---------------- Print ----------------
+   Only the active tab's result: the header, tab bar, forms, and every
+   button go. Colors switch to the light palette whatever the screen
+   theme, so a dark page doesn't come out as a sheet of black ink; a
+   chart's own stylesheet still applies, since that lives in its SVG. */
+
+@page {
+  margin: 0.5in;
+}
+
+@media print {
+  :root {
+    --color-bg: #ffffff;
+    --color-surface: #ffffff;
+    --color-border: #cccccc;
+    --color-text: #000000;
+    --color-text-muted: #444444;
+    --color-primary: #b8480e;
+  }
+
+  body {
+    background: #ffffff;
+    color: #000000;
+  }
+
+  .page {
+    max-width: none;
+    padding: 0;
+  }
+
+  .page-header,
+  .mode-toggle,
+  .panel-input,
+  .result-toolbar,
+  .result-extras,
+  .error-box,
+  .warning-box,
+  .loading-box,
+  .print-btn,
+  .gallery-open {
+    display: none !important;
+  }
+
+  .panel-layout {
+    display: block;
+  }
+
+  .panel-output {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .result-box {
+    background: none;
+    border: none;
+    padding: 0;
+    overflow: visible;
+  }
+
+  /* Scales down to fit one page, never up past the chart's own size. */
+  .result-box svg,
+  .result-box img {
+    max-height: 9.5in;
+  }
+
+  .result-box.has-print-grid {
+    display: none;
+  }
+
+  .print-grid {
+    display: block;
+  }
+
+  .print-grid-title {
+    margin: 0 0 0.2in;
+    text-align: center;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16pt;
+  }
+
+  .print-grid-row {
+    display: grid;
+    gap: 0.15in;
+    margin-bottom: 0.15in;
+    break-inside: avoid;
+  }
+
+  .print-grid-cell img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+
+  .overview-section,
+  .gallery-card {
+    break-inside: avoid;
+  }
+
+  /* No scrolling on paper: wrap long source lines instead of clipping them. */
+  .gallery-source .gallery-document {
+    overflow: visible;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .gallery-card-body {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+/* ---------------- Responsive ---------------- */
+
+@media (max-width: 480px) {
+  .page {
+    padding: var(--spacing-4) var(--spacing-3);
+  }
+
+  .mode-btn {
+    font-size: 0.9rem;
+    padding: var(--spacing-2) var(--spacing-3);
+  }
+
+  .actions .format-toggle {
+    margin-right: 0;
+  }
+
+  .actions .btn-secondary {
+    flex: 1 1 auto;
+  }
+
+  button[type="submit"] {
+    width: 100%;
+  }
+
+  .marker-row-header {
+    display: none; /* column alignment breaks once rows wrap below */
+  }
+
+  .marker-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) 1.75rem;
+    padding-bottom: var(--spacing-2);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  /* String/Fret/Label on the first line, Class/Finger/Shape on the
+     second, remove button spanning both at the end. */
+  .marker-row > :nth-child(n + 4) {
+    grid-row: 2;
+  }
+
+  .marker-row > .marker-row-remove {
+    grid-column: 4;
+    grid-row: 1 / span 2;
+  }
+
+  .bracket-row-header {
+    display: none;
+  }
+
+  /* Start/End on the first line, Label/Class on the second. */
+  .bracket-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) 1.75rem;
+    padding-bottom: var(--spacing-2);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .bracket-row > :nth-child(n + 3) {
+    grid-row: 2;
+  }
+
+  .bracket-row > .marker-row-remove {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+}

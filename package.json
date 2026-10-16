@@ -1,0 +1,57 @@
+{
+  "name": "fretcharts",
+  "version": "0.1.0",
+  "description": "Renders guitar chord charts to SVG or PNG from compact tablature notation.",
+  "keywords": [
+    "guitar",
+    "chord",
+    "chart",
+    "tablature",
+    "svg",
+    "png",
+    "cli"
+  ],
+  "author": "Jeremy Fisher",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rawg/fretcharts.git"
+  },
+  "homepage": "https://github.com/rawg/fretcharts#readme",
+  "bugs": {
+    "url": "https://github.com/rawg/fretcharts/issues"
+  },
+  "bin": {
+    "fretcharts": "dist/cli.js",
+    "fretcharts-triads": "dist/triadsCli.js"
+  },
+  "main": "dist/chart.js",
+  "types": "dist/chart.d.ts",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc && chmod +x dist/cli.js dist/triadsCli.js",
+    "prepare": "npm run build",
+    "build:web": "node scripts/build-web.mjs --minify",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.browser.json",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "dependencies": {
+    "commander": "^12.0.0",
+    "csv-parse": "^7.0.2",
+    "sharp": "^0.35.0",
+    "yaml": "^2.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "esbuild": "^0.28.2",
+    "jsdom": "^24.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^3.0.0"
+  }
+}

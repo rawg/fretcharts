@@ -1,0 +1,919 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FretCharts</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="page">
+  <header class="page-header">
+    <h1>Fret<span class="accent">Charts</span></h1>
+    <p class="subtitle">Guitar chord, scale, and neck diagrams from compact tablature notation.</p>
+  </header>
+
+  <nav class="mode-toggle" role="tablist" aria-label="Rendering mode">
+    <button type="button" id="tab-start" class="mode-btn active" role="tab" aria-selected="true" aria-controls="panel-start">Start</button>
+    <span class="mode-divider" role="presentation"></span>
+    <button type="button" id="tab-single" class="mode-btn" role="tab" aria-selected="false" aria-controls="panel-single">Chord</button>
+    <button type="button" id="tab-bulk" class="mode-btn" role="tab" aria-selected="false" aria-controls="panel-bulk">Chord sheet</button>
+    <button type="button" id="tab-triads" class="mode-btn" role="tab" aria-selected="false" aria-controls="panel-triads">Triads</button>
+    <button type="button" id="tab-scale" class="mode-btn" role="tab" aria-selected="false" aria-controls="panel-scale">Scale</button>
+    <button type="button" id="tab-neck" class="mode-btn" role="tab" aria-selected="false" aria-controls="panel-neck">Neck</button>
+    <span class="mode-divider" role="presentation"></span>
+    <button type="button" id="tab-document" class="mode-btn" role="tab" aria-selected="false" aria-controls="panel-document">File</button>
+  </nav>
+
+  <!-- ============ SINGLE CHORD MODE ============ -->
+  <section id="panel-single" class="mode-panel" role="tabpanel" aria-labelledby="tab-single">
+    <div class="panel-layout">
+    <div class="panel-input">
+    <div class="quick-examples">
+      <span class="quick-examples-label">Try:</span>
+      <button type="button" class="example-btn" data-example="single-a-major">A major</button>
+      <button type="button" class="example-btn" data-example="single-g-major">G major</button>
+      <button type="button" class="example-btn" data-example="single-e-minor">E minor</button>
+    </div>
+    <form id="form-single">
+      <fieldset>
+        <legend>Chord</legend>
+
+        <div class="field">
+          <label for="single-notation">Notation <span class="required">*</span></label>
+          <input type="text" id="single-notation" name="notation" placeholder="x02220" required />
+          <p class="hint">One character per string, low E first: <code>x</code> muted, <code>0</code> open, digits = fret.</p>
+        </div>
+
+        <div class="field-grid">
+          <div class="field">
+            <label for="single-label">Label</label>
+            <input type="text" id="single-label" name="label" placeholder="A minor" />
+          </div>
+          <div class="field">
+            <label for="single-tuning">Tuning</label>
+            <input type="text" id="single-tuning" name="tuning" placeholder="EADGBE" />
+          </div>
+          <div class="field">
+            <label for="single-root">Root strings</label>
+            <input type="text" id="single-root" name="root" placeholder="6 or 4,2" title="String number(s) tagged with the &quot;root&quot; CSS class" />
+          </div>
+          <div class="field">
+            <label for="single-transpose">Transpose</label>
+            <input type="number" step="1" id="single-transpose" name="transpose" placeholder="0" title="Shift every note by this many frets (negative shifts down)" />
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="single-labelPitches" name="labelPitches" />
+            Label pitches
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="single-labelTuning" name="labelTuning" />
+            Label tuning
+          </label>
+        </div>
+      </fieldset>
+
+      <div class="disclosures">
+      <details class="advanced">
+        <summary>Per-string details <span class="summary-note">labels, fingers, classes, shapes</span></summary>
+        <div class="field json-or-per-string">
+          <div class="field-label-row">
+            <label>String labels</label>
+            <div class="segmented segmented-sm" role="radiogroup" aria-label="String labels input mode">
+              <label><input type="radio" name="single-stringLabels-mode" value="text" />JSON</label>
+              <label><input type="radio" name="single-stringLabels-mode" value="per-string" checked />Per string</label>
+            </div>
+          </div>
+          <div id="single-stringLabels-text-view" class="hidden">
+            <input type="text" id="single-stringLabels-text" placeholder='{"6":"R"}' />
+          </div>
+          <div id="single-stringLabels-per-string-view">
+            <div class="per-string-grid">
+              <div class="per-string-input"><label for="single-stringLabels-string-6">6</label><input type="text" id="single-stringLabels-string-6" /></div>
+              <div class="per-string-input"><label for="single-stringLabels-string-5">5</label><input type="text" id="single-stringLabels-string-5" /></div>
+              <div class="per-string-input"><label for="single-stringLabels-string-4">4</label><input type="text" id="single-stringLabels-string-4" /></div>
+              <div class="per-string-input"><label for="single-stringLabels-string-3">3</label><input type="text" id="single-stringLabels-string-3" /></div>
+              <div class="per-string-input"><label for="single-stringLabels-string-2">2</label><input type="text" id="single-stringLabels-string-2" /></div>
+              <div class="per-string-input"><label for="single-stringLabels-string-1">1</label><input type="text" id="single-stringLabels-string-1" /></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field json-or-per-string">
+          <div class="field-label-row">
+            <label>Finger positions</label>
+            <div class="segmented segmented-sm" role="radiogroup" aria-label="Finger positions input mode">
+              <label><input type="radio" name="single-fingerPositions-mode" value="text" />JSON</label>
+              <label><input type="radio" name="single-fingerPositions-mode" value="per-string" checked />Per string</label>
+            </div>
+          </div>
+          <div id="single-fingerPositions-text-view" class="hidden">
+            <input type="text" id="single-fingerPositions-text" placeholder='{"6":"1"} or xx0321' />
+            <p class="hint">JSON, or chord-style shorthand like <code>xx0321</code>.</p>
+          </div>
+          <div id="single-fingerPositions-per-string-view">
+            <div class="per-string-grid">
+              <div class="per-string-input"><label for="single-fingerPositions-string-6">6</label><input type="text" id="single-fingerPositions-string-6" /></div>
+              <div class="per-string-input"><label for="single-fingerPositions-string-5">5</label><input type="text" id="single-fingerPositions-string-5" /></div>
+              <div class="per-string-input"><label for="single-fingerPositions-string-4">4</label><input type="text" id="single-fingerPositions-string-4" /></div>
+              <div class="per-string-input"><label for="single-fingerPositions-string-3">3</label><input type="text" id="single-fingerPositions-string-3" /></div>
+              <div class="per-string-input"><label for="single-fingerPositions-string-2">2</label><input type="text" id="single-fingerPositions-string-2" /></div>
+              <div class="per-string-input"><label for="single-fingerPositions-string-1">1</label><input type="text" id="single-fingerPositions-string-1" /></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field json-or-per-string">
+          <div class="field-label-row">
+            <label>Note classes</label>
+            <div class="segmented segmented-sm" role="radiogroup" aria-label="Note classes input mode">
+              <label><input type="radio" name="single-noteClasses-mode" value="text" checked />JSON</label>
+              <label><input type="radio" name="single-noteClasses-mode" value="per-string" />Per string</label>
+            </div>
+          </div>
+          <div id="single-noteClasses-text-view">
+            <input type="text" id="single-noteClasses-text" placeholder='{"3":"root"}' />
+          </div>
+          <div id="single-noteClasses-per-string-view" class="hidden">
+            <div class="per-string-grid per-string-grid-wide">
+              <div class="per-string-input"><label for="single-noteClasses-string-6">6</label><input type="text" id="single-noteClasses-string-6" /></div>
+              <div class="per-string-input"><label for="single-noteClasses-string-5">5</label><input type="text" id="single-noteClasses-string-5" /></div>
+              <div class="per-string-input"><label for="single-noteClasses-string-4">4</label><input type="text" id="single-noteClasses-string-4" /></div>
+              <div class="per-string-input"><label for="single-noteClasses-string-3">3</label><input type="text" id="single-noteClasses-string-3" /></div>
+              <div class="per-string-input"><label for="single-noteClasses-string-2">2</label><input type="text" id="single-noteClasses-string-2" /></div>
+              <div class="per-string-input"><label for="single-noteClasses-string-1">1</label><input type="text" id="single-noteClasses-string-1" /></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field json-or-per-string">
+          <div class="field-label-row">
+            <label>Note shapes</label>
+            <div class="segmented segmented-sm" role="radiogroup" aria-label="Note shapes input mode">
+              <label><input type="radio" name="single-noteShapes-mode" value="text" />JSON</label>
+              <label><input type="radio" name="single-noteShapes-mode" value="per-string" checked />Per string</label>
+            </div>
+          </div>
+          <div id="single-noteShapes-text-view" class="hidden">
+            <input type="text" id="single-noteShapes-text" placeholder='{"3":"square"}' />
+            <p class="hint">Values: <code>circle</code>, <code>square</code>, <code>triangle</code>, <code>diamond</code>.</p>
+          </div>
+          <div id="single-noteShapes-per-string-view">
+            <div class="per-string-grid per-string-grid-wide">
+              <div class="per-string-input"><label for="single-noteShapes-string-6">6</label>
+                <select id="single-noteShapes-string-6"><option value="">Default</option><option value="circle">○ Circle</option><option value="square">□ Square</option><option value="triangle">△ Triangle</option><option value="diamond">◇ Diamond</option></select>
+              </div>
+              <div class="per-string-input"><label for="single-noteShapes-string-5">5</label>
+                <select id="single-noteShapes-string-5"><option value="">Default</option><option value="circle">○ Circle</option><option value="square">□ Square</option><option value="triangle">△ Triangle</option><option value="diamond">◇ Diamond</option></select>
+              </div>
+              <div class="per-string-input"><label for="single-noteShapes-string-4">4</label>
+                <select id="single-noteShapes-string-4"><option value="">Default</option><option value="circle">○ Circle</option><option value="square">□ Square</option><option value="triangle">△ Triangle</option><option value="diamond">◇ Diamond</option></select>
+              </div>
+              <div class="per-string-input"><label for="single-noteShapes-string-3">3</label>
+                <select id="single-noteShapes-string-3"><option value="">Default</option><option value="circle">○ Circle</option><option value="square">□ Square</option><option value="triangle">△ Triangle</option><option value="diamond">◇ Diamond</option></select>
+              </div>
+              <div class="per-string-input"><label for="single-noteShapes-string-2">2</label>
+                <select id="single-noteShapes-string-2"><option value="">Default</option><option value="circle">○ Circle</option><option value="square">□ Square</option><option value="triangle">△ Triangle</option><option value="diamond">◇ Diamond</option></select>
+              </div>
+              <div class="per-string-input"><label for="single-noteShapes-string-1">1</label>
+                <select id="single-noteShapes-string-1"><option value="">Default</option><option value="circle">○ Circle</option><option value="square">□ Square</option><option value="triangle">△ Triangle</option><option value="diamond">◇ Diamond</option></select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="hint">Strings run low (6) to high (1); blank strings are left out.</p>
+      </details>
+
+      <details class="advanced">
+        <summary>Styling</summary>
+        <div class="field">
+          <div class="field-label-row">
+            <label for="single-stylesheet">Stylesheet</label>
+            <select id="single-theme" class="select-sm" aria-label="Fill stylesheet from a theme preset">
+              <option value="" selected>Start from a theme&hellip;</option>
+              <option value="dark">Dark</option>
+              <option value="colorful">Colorful</option>
+              <option value="soft">Soft (muted lines, blue root)</option>
+              <option value="orangeCrush">Orange Crush</option>
+              <option value="blueprint">Blueprint</option>
+              <option value="vintage">Vintage (parchment, wood neck)</option>
+              <option value="neon">Neon</option>
+              <option value="print">Print (black &amp; white)</option>
+            </select>
+          </div>
+          <textarea id="single-stylesheet" name="stylesheet" rows="6" placeholder=".chord-chart-background { fill: #fdf6e3; }&#10;.chord-neck { fill: #8b5a2b; }&#10;.chord-dot-string-6 { fill: navy; }&#10;circle.root, rect.root, polygon.root { fill: #d62828; }&#10;.chord-title { fill: #457b9d; }"></textarea>
+          <p class="hint">CSS embedded in the SVG. See the README for every class.</p>
+        </div>
+        <div class="field">
+          <label for="single-defs">SVG defs</label>
+          <textarea id="single-defs" name="defs" rows="3" placeholder="&lt;linearGradient id=&quot;myGradient&quot;&gt;&hellip;&lt;/linearGradient&gt;"></textarea>
+          <p class="hint">Markup for <code>&lt;defs&gt;</code>, e.g. a gradient to use as <code>fill: url(#myGradient)</code>.</p>
+        </div>
+      </details>
+
+      <details class="advanced document-preview">
+        <summary>FretCharts file preview</summary>
+        <pre id="single-document-preview" class="document-preview-text"></pre>
+      </details>
+      </div>
+
+      <div class="actions">
+        <div class="segmented format-toggle" role="radiogroup" aria-label="Output format">
+          <label><input type="radio" name="format" value="svg" checked />SVG</label>
+          <label><input type="radio" name="format" value="png" />PNG</label>
+        </div>
+        <button type="button" id="single-share" class="btn-secondary">Copy link</button>
+        <button type="button" id="single-download" class="btn-secondary">FretCharts File</button>
+        <button type="submit" id="single-submit">Render</button>
+      </div>
+      <p id="single-share-status" class="hint share-status hidden"></p>
+    </form>
+    </div>
+
+    <div class="panel-output">
+      <div id="single-error" class="error-box hidden" role="alert"></div>
+      <div id="single-loading" class="loading-box hidden">Rendering...</div>
+      <div id="single-result" class="result-box"></div>
+    </div>
+    </div>
+  </section>
+
+  <!-- ============ BULK / CSV MODE ============ -->
+  <section id="panel-bulk" class="mode-panel" role="tabpanel" aria-labelledby="tab-bulk">
+    <div class="panel-layout">
+    <div class="panel-input">
+    <form id="form-bulk">
+      <fieldset>
+        <legend>Chords</legend>
+        <div class="field">
+          <label for="bulk-csv">CSV <span class="required">*</span></label>
+          <textarea id="bulk-csv" name="csv" rows="7" required placeholder='notes,label,root,string-labels&#10;x02220,A,5,&#10;320003,G,6,"{""6"":""R""}"'></textarea>
+          <details class="hint-details">
+            <summary>Columns</summary>
+            <p class="hint">Requires a <code>notes</code> column. Optional: <code>label</code>, <code>string-labels</code>, <code>finger-positions</code>, <code>note-classes</code>, <code>root</code>, <code>tuning</code>, <code>label-pitches</code>, <code>label-tuning</code>. Per-row <code>stylesheet</code> is rejected; use the shared Styling section. Quote fields containing commas, quotes, or JSON, doubling inner quotes (standard CSV, as in the placeholder).</p>
+          </details>
+        </div>
+
+        <div class="field-grid">
+          <div class="field">
+            <label for="bulk-collectionLabel">Collection label</label>
+            <input type="text" id="bulk-collectionLabel" name="collectionLabel" placeholder="My Song Chords" />
+          </div>
+          <div class="field">
+            <label for="bulk-columns">Columns</label>
+            <input type="number" id="bulk-columns" name="columns" min="1" step="1" placeholder="4" />
+          </div>
+          <div class="field">
+            <label for="bulk-transpose">Transpose</label>
+            <input type="number" step="1" id="bulk-transpose" name="transpose" placeholder="0" title="Shift every chord by this many frets (negative shifts down)" />
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="disclosures">
+      <details class="advanced">
+        <summary>Shared defaults <span class="summary-note">used where a row leaves a column blank</span></summary>
+
+        <div class="field">
+          <label for="bulk-tuning">Tuning</label>
+          <input type="text" id="bulk-tuning" name="tuning" placeholder="EADGBE" />
+        </div>
+
+        <div class="field field-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="bulk-labelPitches" name="labelPitches" />
+            Label pitches
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="bulk-labelTuning" name="labelTuning" />
+            Label tuning
+          </label>
+        </div>
+
+        <div class="field json-or-per-string">
+          <div class="field-label-row">
+            <label>String labels</label>
+            <div class="segmented segmented-sm" role="radiogroup" aria-label="String labels input mode">
+              <label><input type="radio" name="bulk-stringLabels-mode" value="text" />JSON</label>
+              <label><input type="radio" name="bulk-stringLabels-mode" value="per-string" checked />Per string</label>
+            </div>
+          </div>
+          <div id="bulk-stringLabels-text-view" class="hidden">
+            <input type="text" id="bulk-stringLabels-text" placeholder='{"6":"R"}' />
+          </div>
+          <div id="bulk-stringLabels-per-string-view">
+            <div class="per-string-grid">
+              <div class="per-string-input"><label for="bulk-stringLabels-string-6">6</label><input type="text" id="bulk-stringLabels-string-6" /></div>
+              <div class="per-string-input"><label for="bulk-stringLabels-string-5">5</label><input type="text" id="bulk-stringLabels-string-5" /></div>
+              <div class="per-string-input"><label for="bulk-stringLabels-string-4">4</label><input type="text" id="bulk-stringLabels-string-4" /></div>
+              <div class="per-string-input"><label for="bulk-stringLabels-string-3">3</label><input type="text" id="bulk-stringLabels-string-3" /></div>
+              <div class="per-string-input"><label for="bulk-stringLabels-string-2">2</label><input type="text" id="bulk-stringLabels-string-2" /></div>
+              <div class="per-string-input"><label for="bulk-stringLabels-string-1">1</label><input type="text" id="bulk-stringLabels-string-1" /></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field json-or-per-string">
+          <div class="field-label-row">
+            <label>Finger positions</label>
+            <div class="segmented segmented-sm" role="radiogroup" aria-label="Finger positions input mode">
+              <label><input type="radio" name="bulk-fingerPositions-mode" value="text" />JSON</label>
+              <label><input type="radio" name="bulk-fingerPositions-mode" value="per-string" checked />Per string</label>
+            </div>
+          </div>
+          <div id="bulk-fingerPositions-text-view" class="hidden">
+            <input type="text" id="bulk-fingerPositions-text" placeholder='{"6":"1"} or xx0321' />
+            <p class="hint">JSON, or chord-style shorthand like <code>xx0321</code>.</p>
+          </div>
+          <div id="bulk-fingerPositions-per-string-view">
+            <div class="per-string-grid">
+              <div class="per-string-input"><label for="bulk-fingerPositions-string-6">6</label><input type="text" id="bulk-fingerPositions-string-6" /></div>
+              <div class="per-string-input"><label for="bulk-fingerPositions-string-5">5</label><input type="text" id="bulk-fingerPositions-string-5" /></div>
+              <div class="per-string-input"><label for="bulk-fingerPositions-string-4">4</label><input type="text" id="bulk-fingerPositions-string-4" /></div>
+              <div class="per-string-input"><label for="bulk-fingerPositions-string-3">3</label><input type="text" id="bulk-fingerPositions-string-3" /></div>
+              <div class="per-string-input"><label for="bulk-fingerPositions-string-2">2</label><input type="text" id="bulk-fingerPositions-string-2" /></div>
+              <div class="per-string-input"><label for="bulk-fingerPositions-string-1">1</label><input type="text" id="bulk-fingerPositions-string-1" /></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field json-or-per-string">
+          <div class="field-label-row">
+            <label>Note classes</label>
+            <div class="segmented segmented-sm" role="radiogroup" aria-label="Note classes input mode">
+              <label><input type="radio" name="bulk-noteClasses-mode" value="text" checked />JSON</label>
+              <label><input type="radio" name="bulk-noteClasses-mode" value="per-string" />Per string</label>
+            </div>
+          </div>
+          <div id="bulk-noteClasses-text-view">
+            <input type="text" id="bulk-noteClasses-text" placeholder='{"3":"root"}' />
+          </div>
+          <div id="bulk-noteClasses-per-string-view" class="hidden">
+            <div class="per-string-grid per-string-grid-wide">
+              <div class="per-string-input"><label for="bulk-noteClasses-string-6">6</label><input type="text" id="bulk-noteClasses-string-6" /></div>
+              <div class="per-string-input"><label for="bulk-noteClasses-string-5">5</label><input type="text" id="bulk-noteClasses-string-5" /></div>
+              <div class="per-string-input"><label for="bulk-noteClasses-string-4">4</label><input type="text" id="bulk-noteClasses-string-4" /></div>
+              <div class="per-string-input"><label for="bulk-noteClasses-string-3">3</label><input type="text" id="bulk-noteClasses-string-3" /></div>
+              <div class="per-string-input"><label for="bulk-noteClasses-string-2">2</label><input type="text" id="bulk-noteClasses-string-2" /></div>
+              <div class="per-string-input"><label for="bulk-noteClasses-string-1">1</label><input type="text" id="bulk-noteClasses-string-1" /></div>
+            </div>
+          </div>
+        </div>
+        <p class="hint">Strings run low (6) to high (1); blank strings are left out.</p>
+      </details>
+
+      <details class="advanced">
+        <summary>Styling <span class="summary-note">applies to the whole grid</span></summary>
+        <div class="field">
+          <div class="field-label-row">
+            <label for="bulk-stylesheet">Stylesheet</label>
+            <select id="bulk-theme" class="select-sm" aria-label="Fill stylesheet from a theme preset">
+              <option value="" selected>Start from a theme&hellip;</option>
+              <option value="dark">Dark</option>
+              <option value="colorful">Colorful</option>
+              <option value="soft">Soft (muted lines, blue root)</option>
+              <option value="orangeCrush">Orange Crush</option>
+              <option value="blueprint">Blueprint</option>
+              <option value="vintage">Vintage (parchment, wood neck)</option>
+              <option value="neon">Neon</option>
+              <option value="print">Print (black &amp; white)</option>
+            </select>
+          </div>
+          <textarea id="bulk-stylesheet" name="stylesheet" rows="6" placeholder=".chord-chart-background { fill: #fdf6e3; }&#10;.chord-neck { fill: #8b5a2b; }&#10;.chord-dot-string-6 { fill: navy; }&#10;circle.root, rect.root, polygon.root { fill: #d62828; }&#10;.chord-title { fill: #457b9d; }"></textarea>
+          <p class="hint">CSS for every chart and the grid background. See the README for every class.</p>
+        </div>
+        <div class="field">
+          <label for="bulk-defs">SVG defs</label>
+          <textarea id="bulk-defs" name="defs" rows="3" placeholder="&lt;linearGradient id=&quot;myGradient&quot;&gt;&hellip;&lt;/linearGradient&gt;"></textarea>
+          <p class="hint">Markup for <code>&lt;defs&gt;</code> in every chart, e.g. a gradient to use as <code>fill: url(#myGradient)</code>.</p>
+        </div>
+      </details>
+
+      <details class="advanced document-preview">
+        <summary>FretCharts file preview</summary>
+        <pre id="bulk-document-preview" class="document-preview-text"></pre>
+      </details>
+      </div>
+
+      <div class="actions">
+        <div class="segmented format-toggle" role="radiogroup" aria-label="Output format">
+          <label><input type="radio" name="format" value="svg" checked />SVG</label>
+          <label><input type="radio" name="format" value="png" />PNG</label>
+        </div>
+        <button type="button" id="bulk-share" class="btn-secondary">Copy link</button>
+        <button type="button" id="bulk-download" class="btn-secondary">FretCharts File</button>
+        <button type="submit" id="bulk-submit">Render grid</button>
+      </div>
+      <p id="bulk-share-status" class="hint share-status hidden"></p>
+    </form>
+    </div>
+
+    <div class="panel-output">
+      <div id="bulk-error" class="error-box hidden" role="alert"></div>
+      <div id="bulk-loading" class="loading-box hidden">Rendering...</div>
+      <div id="bulk-result" class="result-box"></div>
+    </div>
+    </div>
+  </section>
+
+  <!-- ============ TRIADS MODE ============ -->
+  <section id="panel-triads" class="mode-panel" role="tabpanel" aria-labelledby="tab-triads">
+    <div class="panel-layout">
+    <div class="panel-input">
+    <p class="panel-intro">One triad per chord, all on the same three adjacent strings. The first chord (or the key's chord) is the <strong>anchor</strong>; the rest keep your hand moving as little as possible.</p>
+    <p class="panel-intro">A triad has room for three notes, so four-note chords lose one. 6, m6, 7, maj7, m7, and add9 drop the 5th: <code>A7</code> plays A, C#, G. In m7b5 and dim7 the flat 5th is the point, so the 3rd goes instead: <code>Bm7b5</code> plays B, F, A.</p>
+    <form id="form-triads">
+      <fieldset>
+        <legend>Progression</legend>
+        <div class="field">
+          <label for="triads-chords">Chords <span class="required">*</span></label>
+          <input type="text" id="triads-chords" name="chords" required placeholder="D Bm G A7" />
+          <details class="hint-details">
+            <summary>Supported chords</summary>
+            <p class="hint">Separate with spaces or commas. Qualities: maj, m, dim, aug, sus2, sus4, 6, m6, 7, maj7, m7, m7b5, dim7, add9, e.g. <code>F#m</code>, <code>Gsus4</code>, <code>Bm7b5</code>.</p>
+          </details>
+        </div>
+        <div class="field-grid">
+          <div class="field">
+            <label for="triads-key">Key</label>
+            <input type="text" id="triads-key" name="key" placeholder="First chord's root" title="The first chord with this root becomes the anchor" />
+          </div>
+          <div class="field">
+            <label for="triads-collectionLabel">Collection label</label>
+            <input type="text" id="triads-collectionLabel" name="collectionLabel" placeholder="D major triads" />
+          </div>
+          <div class="field">
+            <label for="triads-columns">Columns</label>
+            <input type="number" id="triads-columns" name="columns" min="1" step="1" placeholder="4" />
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Constraints</legend>
+        <div class="field-grid field-grid-wide">
+          <div class="field">
+            <label for="triads-strings">Strings</label>
+            <input type="text" id="triads-strings" name="strings" placeholder="All strings" />
+            <p class="hint">e.g. <code>1-4</code> or <code>1,2,3,4</code> (1 = high E).</p>
+          </div>
+          <div class="field">
+            <label for="triads-floor">Floor</label>
+            <input type="text" id="triads-floor" name="floor" placeholder="None" />
+            <p class="hint">Lowest fret (<code>5</code>), or string,fret pitch (<code>5,3</code>).</p>
+          </div>
+          <div class="field">
+            <label for="triads-direction">Direction</label>
+            <select id="triads-direction" name="direction">
+              <option value="" selected>Least movement</option>
+              <option value="above">Above the anchor</option>
+              <option value="below">Below the anchor</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="triads-tuning">Tuning</label>
+            <input type="text" id="triads-tuning" name="tuning" placeholder="EADGBE" />
+          </div>
+          <div class="field">
+            <label for="triads-maxSpan">Max span (frets)</label>
+            <input type="number" id="triads-maxSpan" name="maxSpan" min="1" step="1" placeholder="3" title="Widest stretch within one triad, inclusive" />
+          </div>
+          <div class="field">
+            <label for="triads-maxFret">Max fret</label>
+            <input type="number" id="triads-maxFret" name="maxFret" min="1" max="24" step="1" placeholder="15" />
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="disclosures">
+      <details class="advanced">
+        <summary>Styling</summary>
+        <div class="field">
+          <div class="field-label-row">
+            <label for="triads-stylesheet">Stylesheet</label>
+            <select id="triads-theme" class="select-sm" aria-label="Fill stylesheet from a theme preset">
+              <option value="" selected>Start from a theme&hellip;</option>
+              <option value="dark">Dark</option>
+              <option value="colorful">Colorful</option>
+              <option value="soft">Soft (muted lines, blue root)</option>
+              <option value="orangeCrush">Orange Crush</option>
+              <option value="blueprint">Blueprint</option>
+              <option value="vintage">Vintage (parchment, wood neck)</option>
+              <option value="neon">Neon</option>
+              <option value="print">Print (black &amp; white)</option>
+            </select>
+          </div>
+          <textarea id="triads-stylesheet" name="stylesheet" rows="6" placeholder=".chord-chart-background { fill: #fdf6e3; }&#10;.chord-neck { fill: #8b5a2b; }&#10;circle.root, rect.root, polygon.root { fill: #d62828; }&#10;.chord-title { fill: #457b9d; }"></textarea>
+          <p class="hint">Each root is tagged <code>root</code>; every note is labeled with its interval.</p>
+        </div>
+        <div class="field">
+          <label for="triads-defs">SVG defs</label>
+          <textarea id="triads-defs" name="defs" rows="3"></textarea>
+        </div>
+      </details>
+      </div>
+
+      <div class="actions">
+        <div class="segmented format-toggle" role="radiogroup" aria-label="Output format">
+          <label><input type="radio" name="format" value="svg" checked />SVG</label>
+          <label><input type="radio" name="format" value="png" />PNG</label>
+        </div>
+        <button type="submit" id="triads-submit">Find triads</button>
+      </div>
+    </form>
+    </div>
+
+    <div class="panel-output">
+      <div id="triads-error" class="error-box hidden" role="alert"></div>
+      <div id="triads-loading" class="loading-box hidden">Searching...</div>
+      <div id="triads-result" class="result-box"></div>
+      <div id="triads-csv-panel" class="result-extras hidden">
+        <div class="result-actions">
+          <button type="button" id="triads-to-bulk" class="btn-secondary" disabled>Send to Chord sheet</button>
+          <button type="button" id="triads-download" class="btn-secondary" disabled>Download CSV</button>
+        </div>
+        <details class="advanced">
+          <summary>Generated CSV</summary>
+          <pre id="triads-csv" class="document-preview-text"></pre>
+        </details>
+      </div>
+    </div>
+    </div>
+  </section>
+
+  <!-- ============ SCALE CHART MODE ============ -->
+  <section id="panel-scale" class="mode-panel" role="tabpanel" aria-labelledby="tab-scale">
+    <div class="panel-layout">
+    <div class="panel-input">
+    <div class="quick-examples">
+      <span class="quick-examples-label">Try:</span>
+      <button type="button" class="example-btn" data-example="scale-pentatonic-box">Minor pentatonic box</button>
+    </div>
+    <form id="form-scale">
+      <fieldset>
+        <legend>Chart</legend>
+
+        <div class="field-grid">
+          <div class="field">
+            <label for="scale-label">Label</label>
+            <input type="text" id="scale-label" name="label" placeholder="A minor pentatonic" />
+          </div>
+          <div class="field">
+            <label for="scale-tuning">Tuning</label>
+            <input type="text" id="scale-tuning" name="tuning" placeholder="EADGBE" />
+          </div>
+          <div class="field">
+            <label for="scale-mutedStrings">Muted strings</label>
+            <input type="text" id="scale-mutedStrings" name="mutedStrings" placeholder="6 or 4,2" title="Rendered as x; markers on these strings are dropped" />
+          </div>
+          <div class="field">
+            <label for="scale-transpose">Transpose</label>
+            <input type="number" step="1" id="scale-transpose" name="transpose" placeholder="0" title="Shift every marker by this many frets (negative shifts down)" />
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="scale-labelPitches" name="labelPitches" />
+            Label pitches
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="scale-labelTuning" name="labelTuning" />
+            Label tuning
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="scale-labelFrets" name="labelFrets" checked />
+            Label frets
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Markers</legend>
+        <div class="marker-row-header">
+          <span>String</span><span>Fret</span><span>Label</span><span>Class</span><span>Finger</span><span>Shape</span><span></span>
+        </div>
+        <div id="scale-marker-rows"></div>
+        <button type="button" id="scale-add-marker" class="btn-secondary btn-sm">+ Add marker</button>
+        <p class="hint">Rows without a fret are ignored.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Brackets</legend>
+        <div class="bracket-row-header">
+          <span>Start fret</span><span>End fret</span><span>Label</span><span>Class</span><span></span>
+        </div>
+        <div id="scale-bracket-rows"></div>
+        <button type="button" id="scale-add-bracket" class="btn-secondary btn-sm">+ Add bracket</button>
+        <p class="hint">Labeled fret ranges drawn left of the grid (e.g. CAGED shapes); overlapping brackets stack. They must fit the chart's 5-fret window along with the notes. Rows without a start fret or label are ignored; a blank end fret means a single fret.</p>
+      </fieldset>
+
+      <div class="disclosures">
+      <details class="advanced">
+        <summary>Styling</summary>
+        <div class="field">
+          <div class="field-label-row">
+            <label for="scale-stylesheet">Stylesheet</label>
+            <select id="scale-theme" class="select-sm" aria-label="Fill stylesheet from a theme preset">
+              <option value="" selected>Start from a theme&hellip;</option>
+              <option value="dark">Dark</option>
+              <option value="colorful">Colorful</option>
+              <option value="soft">Soft (muted lines, blue root)</option>
+              <option value="orangeCrush">Orange Crush</option>
+              <option value="blueprint">Blueprint</option>
+              <option value="vintage">Vintage (parchment, wood neck)</option>
+              <option value="neon">Neon</option>
+              <option value="print">Print (black &amp; white)</option>
+            </select>
+          </div>
+          <textarea id="scale-stylesheet" name="stylesheet" rows="6" placeholder=".chord-chart-background { fill: #fdf6e3; }&#10;.chord-neck { fill: #8b5a2b; }&#10;.chord-dot-string-6 { fill: navy; }&#10;circle.root, rect.root, polygon.root { fill: #d62828; }&#10;.chord-title { fill: #457b9d; }"></textarea>
+          <p class="hint">CSS embedded in the SVG. See the README for every class.</p>
+        </div>
+        <div class="field">
+          <label for="scale-defs">SVG defs</label>
+          <textarea id="scale-defs" name="defs" rows="3" placeholder="&lt;linearGradient id=&quot;myGradient&quot;&gt;&hellip;&lt;/linearGradient&gt;"></textarea>
+          <p class="hint">Markup for <code>&lt;defs&gt;</code>, e.g. a gradient to use as <code>fill: url(#myGradient)</code>.</p>
+        </div>
+      </details>
+
+      <details class="advanced document-preview">
+        <summary>FretCharts file <span class="summary-note">preview &amp; export options</span></summary>
+        <div class="field-row">
+          <label class="checkbox-label" title="Write notes as 6:3:R;5:2:b3 instead of a YAML list">
+            <input type="checkbox" id="scale-document-preview-compact" checked />
+            Compact notation for notes
+          </label>
+          <label class="checkbox-label" title="Write the transpose into each marker's fret instead of a separate transpose: field">
+            <input type="checkbox" id="scale-bakeTranspose" />
+            Bake transpose into notes
+          </label>
+        </div>
+        <p class="hint">Both apply to the FretCharts File and Copy link buttons too.</p>
+        <pre id="scale-document-preview" class="document-preview-text"></pre>
+      </details>
+      </div>
+
+      <div class="actions">
+        <div class="segmented format-toggle" role="radiogroup" aria-label="Output format">
+          <label><input type="radio" name="format" value="svg" checked />SVG</label>
+          <label><input type="radio" name="format" value="png" />PNG</label>
+        </div>
+        <button type="button" id="scale-share" class="btn-secondary">Copy link</button>
+        <button type="button" id="scale-download" class="btn-secondary">FretCharts File</button>
+        <button type="submit" id="scale-submit">Render</button>
+      </div>
+      <p id="scale-share-status" class="hint share-status hidden"></p>
+    </form>
+    </div>
+
+    <div class="panel-output">
+      <div id="scale-error" class="error-box hidden" role="alert"></div>
+      <div id="scale-loading" class="loading-box hidden">Rendering...</div>
+      <div id="scale-result" class="result-box"></div>
+    </div>
+    </div>
+  </section>
+
+  <!-- ============ NECK DIAGRAM MODE ============ -->
+  <section id="panel-neck" class="mode-panel" role="tabpanel" aria-labelledby="tab-neck">
+    <div class="panel-layout">
+    <div class="panel-input">
+    <div class="quick-examples">
+      <span class="quick-examples-label">Try:</span>
+      <button type="button" class="example-btn" data-example="neck-root-5-shape">Root-5 shape</button>
+    </div>
+    <form id="form-neck">
+      <fieldset>
+        <legend>Neck</legend>
+        <p class="hint fieldset-intro">A horizontal view over a fret range, nut on the left. Same markers as Scale chart.</p>
+
+        <div class="field-grid">
+          <div class="field">
+            <label for="neck-label">Label</label>
+            <input type="text" id="neck-label" name="label" placeholder="Minor pentatonic box" />
+          </div>
+          <div class="field">
+            <label for="neck-tuning">Tuning</label>
+            <input type="text" id="neck-tuning" name="tuning" placeholder="EADGBE" />
+          </div>
+          <div class="field">
+            <label for="neck-mutedStrings">Muted strings</label>
+            <input type="text" id="neck-mutedStrings" name="mutedStrings" placeholder="6 or 4,2" title="Rendered as x; markers on these strings are dropped" />
+          </div>
+          <div class="field">
+            <label for="neck-transpose">Transpose</label>
+            <input type="number" step="1" id="neck-transpose" name="transpose" placeholder="0" title="Shift every marker (and First/Last fret) by this many frets" />
+          </div>
+          <div class="field">
+            <label for="neck-firstFret">First fret</label>
+            <input type="number" id="neck-firstFret" name="firstFret" min="0" step="1" placeholder="0 (nut)" />
+          </div>
+          <div class="field">
+            <label for="neck-lastFret">Last fret</label>
+            <input type="number" id="neck-lastFret" name="lastFret" min="1" step="1" placeholder="first fret + 12" />
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="neck-labelPitches" name="labelPitches" />
+            Label pitches
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="neck-labelTuning" name="labelTuning" />
+            Label tuning
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="neck-labelFrets" name="labelFrets" checked />
+            Label frets
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Markers</legend>
+        <div class="marker-row-header">
+          <span>String</span><span>Fret</span><span>Label</span><span>Class</span><span>Finger</span><span>Shape</span><span></span>
+        </div>
+        <div id="neck-marker-rows"></div>
+        <button type="button" id="neck-add-marker" class="btn-secondary btn-sm">+ Add marker</button>
+        <p class="hint">Rows without a fret are ignored.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Brackets</legend>
+        <div class="bracket-row-header">
+          <span>Start fret</span><span>End fret</span><span>Label</span><span>Class</span><span></span>
+        </div>
+        <div id="neck-bracket-rows"></div>
+        <button type="button" id="neck-add-bracket" class="btn-secondary btn-sm">+ Add bracket</button>
+        <p class="hint">Labeled fret ranges drawn below the neck (e.g. CAGED shapes); overlapping brackets stack. Rows without a start fret or label are ignored; a blank end fret means a single fret.</p>
+      </fieldset>
+
+      <div class="disclosures">
+      <details class="advanced">
+        <summary>Styling</summary>
+        <div class="field">
+          <div class="field-label-row">
+            <label for="neck-stylesheet">Stylesheet</label>
+            <select id="neck-theme" class="select-sm" aria-label="Fill stylesheet from a theme preset">
+              <option value="" selected>Start from a theme&hellip;</option>
+              <option value="dark">Dark</option>
+              <option value="colorful">Colorful</option>
+              <option value="soft">Soft (muted lines, blue root)</option>
+              <option value="orangeCrush">Orange Crush</option>
+              <option value="blueprint">Blueprint</option>
+              <option value="vintage">Vintage (parchment, wood neck)</option>
+              <option value="neon">Neon</option>
+              <option value="print">Print (black &amp; white)</option>
+            </select>
+          </div>
+          <textarea id="neck-stylesheet" name="stylesheet" rows="6" placeholder=".chord-chart-background { fill: #fdf6e3; }&#10;.chord-neck { fill: #8b5a2b; }&#10;circle.root, rect.root, polygon.root { fill: #d62828; }&#10;.chord-neck-fret-label { fill: #666; }&#10;.chord-title { fill: #457b9d; }"></textarea>
+          <p class="hint">Same classes as other charts, plus <code>chord-neck-fret-label</code> / <code>chord-neck-fret-label-N</code>.</p>
+        </div>
+        <div class="field">
+          <label for="neck-defs">SVG defs</label>
+          <textarea id="neck-defs" name="defs" rows="3" placeholder="&lt;linearGradient id=&quot;myGradient&quot;&gt;&hellip;&lt;/linearGradient&gt;"></textarea>
+          <p class="hint">Markup for <code>&lt;defs&gt;</code>, e.g. a gradient to use as <code>fill: url(#myGradient)</code>.</p>
+        </div>
+      </details>
+
+      <details class="advanced document-preview">
+        <summary>FretCharts file <span class="summary-note">preview &amp; export options</span></summary>
+        <div class="field-row">
+          <label class="checkbox-label" title="Write notes as 6:3:R;5:2:b3 instead of a YAML list">
+            <input type="checkbox" id="neck-document-preview-compact" checked />
+            Compact notation for notes
+          </label>
+          <label class="checkbox-label" title="Write the transpose into each marker's fret (and First/Last fret) instead of a separate transpose: field">
+            <input type="checkbox" id="neck-bakeTranspose" />
+            Bake transpose into notes
+          </label>
+        </div>
+        <p class="hint">Both apply to the FretCharts File and Copy link buttons too.</p>
+        <pre id="neck-document-preview" class="document-preview-text"></pre>
+      </details>
+      </div>
+
+      <div class="actions">
+        <div class="segmented format-toggle" role="radiogroup" aria-label="Output format">
+          <label><input type="radio" name="format" value="svg" checked />SVG</label>
+          <label><input type="radio" name="format" value="png" />PNG</label>
+        </div>
+        <button type="button" id="neck-share" class="btn-secondary">Copy link</button>
+        <button type="button" id="neck-download" class="btn-secondary">FretCharts File</button>
+        <button type="submit" id="neck-submit">Render</button>
+      </div>
+      <p id="neck-share-status" class="hint share-status hidden"></p>
+    </form>
+    </div>
+
+    <div class="panel-output">
+      <div id="neck-error" class="error-box hidden" role="alert"></div>
+      <div id="neck-warning" class="warning-box hidden" role="status"></div>
+      <div id="neck-loading" class="loading-box hidden">Rendering...</div>
+      <div id="neck-result" class="result-box"></div>
+    </div>
+    </div>
+  </section>
+
+  <!-- ============ FRETCHARTS FILE MODE ============ -->
+  <section id="panel-document" class="mode-panel" role="tabpanel" aria-labelledby="tab-document">
+    <div class="panel-layout">
+    <div class="panel-input">
+    <form id="form-document">
+      <fieldset>
+        <legend>FretCharts File</legend>
+        <p class="hint fieldset-intro">A self-contained <code>chord</code>, <code>scale</code>, <code>neck</code>, or <code>chords</code> file with its own notes and styling. See the README's "FretCharts files" section.</p>
+
+        <div class="field">
+          <label for="upload-file">Open a file</label>
+          <input type="file" id="upload-file" accept=".yaml,.yml,.json,.txt" />
+          <p class="hint">Fills in the tab matching its <code>type:</code>, or loads it below as text. Nothing is sent until you render.</p>
+        </div>
+
+        <div class="field">
+          <label for="document-text">File text <span class="required">*</span></label>
+          <textarea id="document-text" name="document" rows="14" required placeholder="type: chord&#10;notation: x02220&#10;label: A Major"></textarea>
+          <p class="hint">YAML or JSON. Use inline <code>stylesheet</code>/<code>defs</code>/<code>csv</code>; the <code>*File</code> references only work from the CLI.</p>
+        </div>
+      </fieldset>
+
+      <div class="actions">
+        <div class="segmented format-toggle" role="radiogroup" aria-label="Output format">
+          <label><input type="radio" name="format" value="svg" checked />SVG</label>
+          <label><input type="radio" name="format" value="png" />PNG</label>
+        </div>
+        <button type="button" id="document-share" class="btn-secondary">Copy link</button>
+        <button type="button" id="document-download" class="btn-secondary">FretCharts File</button>
+        <button type="submit" id="document-submit">Render</button>
+      </div>
+      <p id="document-share-status" class="hint share-status hidden"></p>
+    </form>
+    </div>
+
+    <div class="panel-output">
+      <div id="document-error" class="error-box hidden" role="alert"></div>
+      <div id="document-warning" class="warning-box hidden" role="status"></div>
+      <div id="document-loading" class="loading-box hidden">Rendering...</div>
+      <div id="document-result" class="result-box"></div>
+    </div>
+    </div>
+  </section>
+
+  <!-- ============ START: OVERVIEW + GALLERY ============ -->
+  <section id="panel-start" class="mode-panel active" role="tabpanel" aria-labelledby="tab-start">
+    <div class="overview">
+      <p class="overview-lede">Build guitar chord charts, scale charts, and neck diagrams as SVG or PNG. Everything renders right here in your browser; nothing is uploaded.</p>
+
+      <div class="overview-grid">
+        <section class="overview-section">
+          <h2>Pick a tab</h2>
+          <dl class="overview-tabs">
+            <dt>Chord</dt><dd>One chord chart.</dd>
+            <dt>Chord Sheet</dt><dd>A grid of chord charts, one row per chord.</dd>
+            <dt>Triads</dt><dd>Find triad voicings for a progression, close together on three strings.</dd>
+            <dt>Scale</dt><dd>A five-fret box with any number of notes per string.</dd>
+            <dt>Neck</dt><dd>A long stretch of the fretboard, drawn sideways.</dd>
+            <dt>File</dt><dd>Open, paste, or edit a FretCharts file directly.</dd>
+          </dl>
+        </section>
+
+        <section class="overview-section">
+          <h2>Write a chord</h2>
+          <p>One character per string, low E first. <code>x</code> for muted strings, <code>0</code> for open strings, or a number for the fret. <code>x02220</code> is A major; <code>320003</code> is G.</p>
+          <p>Frets 10 and up go inline (<code>x8101098</code>) or, if you'd rather, with spaces or dashes between strings (<code>x-8-10-10-9-8</code>).</p>
+          <p>Strings are numbered 6 (low E) to 1 (high E) everywhere else: string fields, labels, and stylesheet classes. Or customize the strings and tunings for other instruments.</p>
+        </section>
+
+        <section class="overview-section">
+          <h2>Style it</h2>
+          <p>Every tab has a <strong>Stylesheet</strong> field. Start from a theme, or write CSS against classes like <code>chord-dot</code> and <code>chord-string-6</code>. Change the shape of notes. <strong>SVG defs</strong> holds gradients and patterns, and <strong>Transpose</strong> shifts every note up or down the neck.</p>
+        </section>
+
+        <section class="overview-section">
+          <h2>Save and share</h2>
+          <p><strong>FretCharts File</strong> downloads what you've built as a <code>.yaml</code> file. Open it again from the File tab to pick up where you left off. <strong>Copy link</strong> puts the whole chart in a link instead.</p>
+          <p>The same files render from the command line: <code>npm install -g github:rawg/fretcharts</code>. See the <a href="https://github.com/rawg/fretcharts#readme">README</a> for the CLI and every option.</p>
+        </section>
+      </div>
+    </div>
+
+    <div class="gallery-heading">
+      <h2>Examples</h2>
+      <button type="button" id="start-print" class="btn-secondary btn-sm print-btn">Print</button>
+    </div>
+    <p class="panel-intro">Complete FretCharts files, one of each kind of diagram and then some, each rendered live beside its source. Open one in the editor to change it, or copy its text into a <code>.yaml</code> file for the CLI.</p>
+    <div id="gallery-list" class="gallery"></div>
+  </section>
+</div>
+
+<script src="engine.js"></script>
+<script src="documentSync.js"></script>
+<script src="gallery.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

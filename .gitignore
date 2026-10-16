@@ -1,0 +1,15 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+
+# Stray output from manual `node dist/cli.js ...` smoke tests (charts,
+# CSVs, stylesheets) run from the repo root instead of a scratch dir.
+/*.png
+/*.svg
+/*.css
+/*.csv
+out/
+
+# Browser bundle of the renderer, built by `npm run build:web`.
+web/engine.js

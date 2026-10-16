@@ -1,0 +1,9 @@
+type: scale
+label: "Minor Pentatonic Box (partial)"
+notes:
+  - { string: 6, fret: 3, label: R, className: root }
+  - { string: 6, fret: 5, label: "2" }
+  - { string: 5, fret: 2, label: b3 }
+  - { string: 5, fret: 5, label: "4" }
+mutedStrings: "1,2"
+stylesheetFile: ./theme.css

@@ -1,0 +1,52 @@
+type: neck
+notes:
+  - { string: 6, fret: 2, label: "6", className: "shapeG relmin", shape: "diamond" }
+  - { string: 6, fret: 5, label: "1", className: "shapeG shapeE root", shape: "square" }
+  - { string: 5, fret: 2, label: "2", className: "shapeG" }
+  - { string: 5, fret: 4, label: "3", className: "shapeG shapeE" }
+  - { string: 4, fret: 2, label: "5", className: "shapeG" }
+  - { string: 4, fret: 4, label: "6", className: "shapeG shapeE relmin", shape: "diamond" }
+  - { string: 3, fret: 2, label: "1", className: "shapeG root", shape: "square" }
+  - { string: 3, fret: 4, label: "2", className: "shapeG shapeE" }
+  - { string: 2, fret: 2, label: "3", className: "shapeG" }
+  - { string: 2, fret: 5, label: "5", className: "shapeG shapeE" }
+  - { string: 1, fret: 2, label: "6", className: "shapeG relmin", shape: "diamond" }
+  - { string: 1, fret: 5, label: "1", className: "shapeG shapeE root", shape: "square" }
+  - { string: 6, fret: 7, label: "2", className: "shapeE shapeD" }
+  - { string: 5, fret: 7, label: "5", className: "shapeE shapeD" }
+  - { string: 4, fret: 7, label: "1", className: "shapeE shapeD root", shape: "square" }
+  - { string: 3, fret: 6, label: "3", className: "shapeE shapeD" }
+  - { string: 2, fret: 7, label: "6", className: "shapeE shapeD relmin", shape: "diamond" }
+  - { string: 1, fret: 7, label: "2", className: "shapeE shapeD" }
+  - { string: 6, fret: 9, label: "3", className: "shapeD shapeC" }
+  - { string: 5, fret: 9, label: "6", className: "shapeD shapeC relmin", shape: "diamond" }
+  - { string: 4, fret: 9, label: "2", className: "shapeD shapeC" }
+  - { string: 3, fret: 9, label: "5", className: "shapeD shapeC" }
+  - { string: 2, fret: 10, label: "1", className: "shapeD shapeC root", shape: "square" }
+  - { string: 1, fret: 9, label: "3", className: "shapeD shapeC" }
+  - { string: 6, fret: 12, label: "5", className: "shapeC shapeA" }
+  - { string: 5, fret: 12, label: "1", className: "shapeC shapeA root", shape: "square" }
+  - { string: 4, fret: 11, label: "3", className: "shapeC shapeA" }
+  - { string: 3, fret: 11, label: "6", className: "shapeC shapeA relmin", shape: "diamond" }
+  - { string: 2, fret: 12, label: "2", className: "shapeC shapeA" }
+  - { string: 1, fret: 12, label: "5", className: "shapeC shapeA" }
+  - { string: 6, fret: 14, label: "6", className: "shapeA relmin", shape: "diamond" }
+  - { string: 5, fret: 14, label: "2", className: "shapeA" }
+  - { string: 4, fret: 14, label: "5", className: "shapeA" }
+  - { string: 3, fret: 14, label: "1", className: "shapeA root", shape: "square" }
+  - { string: 2, fret: 14, label: "3", className: "shapeA" }
+  - { string: 1, fret: 14, label: "6", className: "shapeA relmin", shape: "diamond" }
+firstFret: 2
+lastFret: 14
+stylesheet: |
+  .chord-string { stroke: #a0a0a0; }
+  .chord-fret { stroke: #a0a0a0; }
+  .chord-fret-marker { fill: #e6e6e6; }
+  .chord-glyph-mute { fill: #808080; }
+  .chord-glyph-open { stroke: #808080; }
+  .chord-finger-label { fill: #808080; }
+  .chord-tuning-label { fill: #a0a0a0; }
+  .chord-fret-label { fill: #a0a0a0; }
+  circle.root, rect.root, polygon.root { fill: #FA9115; }
+  circle.relmin, rect.relmin, polygon.relmin { fill: #8ECAE6; }
+  text.root, text.relmin { fill: #14395c; font-weight: bold; }

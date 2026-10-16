@@ -1,0 +1,64 @@
+name: Release CLI
+
+# Triggers on any tag matching the broad glob below; validate-tag then does
+# strict semver validation as a separate, visible gate -- GitHub's own
+# tag-filter glob syntax isn't precise enough to enforce that on its own.
+# Example matching tag: v0.1.0
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write # to create the GitHub Release and upload the tarball
+
+jobs:
+  validate-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate tag matches vX.Y.Z[-prerelease]
+        run: |
+          if [[ ! "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Tag '${GITHUB_REF_NAME}' does not match the required vX.Y.Z[-prerelease] pattern."
+            exit 1
+          fi
+          echo "Tag '${GITHUB_REF_NAME}' is valid."
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install root package
+        run: npm ci
+      - name: Typecheck + test root package
+        run: |
+          npm run typecheck
+          npm test
+
+  release:
+    needs: [validate-tag, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install root package
+        run: npm ci
+      - name: Build tarball
+        # npm ci already ran the "prepare" build via package.json, but `npm
+        # pack` is what actually produces the fretcharts-X.Y.Z.tgz.
+        run: npm pack
+      - name: Create GitHub Release with tarball attached
+        uses: softprops/action-gh-release@v2
+        with:
+          files: fretcharts-*.tgz
+          generate_release_notes: true
+          # A tag like v1.0.0-beta.1 is published as a prerelease automatically.
+          prerelease: ${{ contains(github.ref_name, '-') }}
