@@ -34,14 +34,7 @@ import { runDocument } from "./document";
 import type { ChartDocument } from "./document";
 import { transposeBrackets, transposeNotation, transposeMarkers, transposeFretRange } from "./transpose";
 import { writeSvgOutput, isDocumentOutputPath, writeDocumentOutput } from "./outputWriter";
-
-// Read at runtime (not a TS import) so it works identically whether this
-// runs as compiled dist/cli.js or as src/cli.ts under a test runner --
-// "../package.json" resolves the same way from both, since src/ and dist/
-// are both direct children of the repo root. tsconfig's rootDir ("src")
-// would reject a real `import` of a file outside it; require() isn't
-// compile-checked, so it isn't affected.
-const PACKAGE_VERSION = (require("../package.json") as { version: string }).version;
+import { VERSION } from "./version";
 
 export interface SingleCliOptions extends ResolvedChartFields {
   mode: "single";
@@ -189,7 +182,7 @@ function buildProgram(): Command {
   program
     .name("fretcharts")
     .description("Render a guitar chord chart from compact tablature notation.")
-    .version(PACKAGE_VERSION)
+    .version(VERSION)
     .addHelpText(
       "before",
       "\nModes (pick exactly one):\n" +

@@ -13,6 +13,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { stringify as stringifyYamlText } from "yaml";
 import { renderPng } from "./render/png";
+import { VERSION } from "./version";
 // Type-only: erased at compile time, so this doesn't create a runtime
 // circular dependency even though document.ts imports writeSvgOutput
 // from this module -- see writeDocumentOutput's doc comment.
@@ -64,10 +65,15 @@ export async function writeSvgOutput(svg: string, outputPath: string | undefined
  * callers only reach this because `isDocumentOutputPath` already
  * confirmed the extension calls for it), so unlike `writeSvgOutput` this
  * is synchronous -- no rasterization step to await.
+ *
+ * Always stamps `version` with this release's {@link VERSION}, right
+ * after `type`, replacing whatever version a reformatted file had.
  */
 export function writeDocumentOutput(doc: ChartDocument, outputPath: string): number {
   const ext = path.extname(outputPath).toLowerCase();
-  const text = ext === ".json" ? `${JSON.stringify(doc, null, 2)}\n` : stringifyYamlText(doc);
+  const { type, version: _previous, ...rest } = doc;
+  const stamped = { type, version: VERSION, ...rest };
+  const text = ext === ".json" ? `${JSON.stringify(stamped, null, 2)}\n` : stringifyYamlText(stamped);
   fs.writeFileSync(outputPath, text, "utf8");
   return 0;
 }

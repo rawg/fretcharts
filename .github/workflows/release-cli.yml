@@ -17,6 +17,7 @@ jobs:
   validate-tag:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Validate tag matches vX.Y.Z[-prerelease]
         run: |
           if [[ ! "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
@@ -24,6 +25,19 @@ jobs:
             exit 1
           fi
           echo "Tag '${GITHUB_REF_NAME}' is valid."
+      - name: Check the tag matches package.json's version
+        # package.json is the single source of the running version (see
+        # src/version.ts) -- it's what --version prints and what gets
+        # stamped into written FretCharts files -- so a tag that disagrees
+        # would publish a build reporting the wrong version. Bump with
+        # `npm version <x.y.z>`, which updates package.json and creates the
+        # matching tag in one step.
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          if [[ "${GITHUB_REF_NAME}" != "v${version}" ]]; then
+            echo "::error::Tag '${GITHUB_REF_NAME}' doesn't match package.json's version '${version}'. Tag v${version}, or bump package.json first."
+            exit 1
+          fi
 
   test:
     runs-on: ubuntu-latest

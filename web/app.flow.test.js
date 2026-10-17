@@ -19,6 +19,7 @@
  * all -- otherwise every init would run a second time.
  */
 
+import { compareVersions, isVersion } from '../src/version';
 import { describe, it, expect } from 'vitest';
 import { JSDOM, VirtualConsole } from 'jsdom';
 import * as fs from 'fs';
@@ -1367,3 +1368,38 @@ describe('Printing', () => {
     expect(printed).toBe(1);
   });
 });
+
+describe('web UI: FretCharts file versions', () => {
+  // The stub engine from loadApp has no version; give it the real helpers.
+  function withVersion(window, version) {
+    window.ChordChartsEngine.VERSION = version;
+    window.ChordChartsEngine.compareVersions = compareVersions;
+    window.ChordChartsEngine.isVersion = isVersion;
+    return window;
+  }
+
+  it('stamps a downloaded file with the current version, right after type', async () => {
+    const window = withVersion(loadApp(), '1.2.3');
+    window.document.getElementById('single-notation').value = 'x02220';
+    const text = await clickDownload(window, 'single');
+    expect(text.split('\n').slice(0, 2)).toEqual(['type: chord', 'version: 1.2.3']);
+  });
+
+  it('populates the matching tab for a file from this version or older', async () => {
+    const window = withVersion(loadApp(), '1.2.3');
+    await uploadFile(window, 'type: chord\nversion: 1.2.3-rc.1\nnotation: x02220\n');
+    expect(isActive(window, 'panel-single')).toBe(true);
+    expect(window.document.getElementById('document-warning').classList.contains('hidden')).toBe(true);
+  });
+
+  it('keeps a file from a newer version as text on the Document tab, with a warning', async () => {
+    const window = withVersion(loadApp(), '1.2.3');
+    await uploadFile(window, 'type: chord\nversion: 1.3.0\nnotation: x02220\nsparkle: true\n');
+    expect(isActive(window, 'panel-document')).toBe(true);
+    const warning = window.document.getElementById('document-warning');
+    expect(warning.classList.contains('hidden')).toBe(false);
+    expect(warning.textContent).toContain('FretCharts 1.3.0, newer than this one (1.2.3)');
+    expect(window.document.getElementById('single-notation').value).toBe('');
+  });
+});
+

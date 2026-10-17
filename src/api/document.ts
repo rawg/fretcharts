@@ -15,7 +15,7 @@
  */
 
 import { parse } from "csv-parse/sync";
-import { parseDocument, buildDocument } from "../document";
+import { parseDocumentWithWarnings, buildDocument } from "../document";
 import { ok, invalid, ApiResult, gridParts } from "./result";
 
 /**
@@ -65,7 +65,7 @@ export function handleDocument(body: unknown): ApiResult {
   // Unguarded -- a malformed document throws DocumentError/ChartInputError/
   // FingerPositionError, which propagate to handler.ts's catch and get a
   // clean 400 via http.ts's errorResponse, same as every other route.
-  const doc = parseDocument(req.document);
+  const { doc, warnings: parseWarnings } = parseDocumentWithWarnings(req.document);
   if (isNumber(req.transpose)) {
     doc.transpose = req.transpose;
   }
@@ -90,7 +90,8 @@ export function handleDocument(body: unknown): ApiResult {
 
   // basePath is inert here -- stylesheetFile/csvFile are already rejected
   // above, so buildDocument never actually resolves a path against it.
-  const { svg, warnings, grid } = buildDocument(doc, ".");
+  const { svg, warnings: buildWarnings, grid } = buildDocument(doc, ".");
+  const warnings = [...parseWarnings, ...buildWarnings];
   const responseWarnings = warnings.length > 0 ? warnings : undefined;
 
   return ok({ svg, warnings: responseWarnings, grid: grid ? gridParts(grid) : undefined });

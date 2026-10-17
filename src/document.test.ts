@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { parseDocument, buildDocument, runDocument, DocumentError } from "./document";
+import { parseDocument, parseDocumentWithWarnings, buildDocument, runDocument, DocumentError } from "./document";
+import { VERSION } from "./version";
 import { ChartInputError } from "./chartFieldResolver";
 import { FingerPositionError } from "./fingerPositions";
 import { ChordParseError } from "./chordparse";
@@ -461,6 +462,54 @@ describe("buildDocument", () => {
   });
 });
 
+describe("document version", () => {
+  it("accepts a version no newer than this one without warnings", () => {
+    for (const version of [VERSION, "0.0.1", "0.0.1-rc.1"]) {
+      const { doc, warnings } = parseDocumentWithWarnings(`type: chord\nversion: "${version}"\nnotation: x02220\n`);
+      expect(doc.version).toBe(version);
+      expect(warnings).toEqual([]);
+    }
+  });
+
+  it("is optional", () => {
+    expect(parseDocumentWithWarnings("type: chord\nnotation: x02220\n").warnings).toEqual([]);
+  });
+
+  it("rejects a malformed version", () => {
+    expect(() => parseDocument('type: chord\nversion: "next"\nnotation: x02220\n')).toThrow(DocumentError);
+    // An unquoted 1.2 is a YAML number, not a version string.
+    expect(() => parseDocument("type: chord\nversion: 1.2\nnotation: x02220\n")).toThrow(/version string/);
+  });
+
+  it("still rejects unrecognized fields in a file from this version or older", () => {
+    expect(() => parseDocument(`type: chord\nversion: "${VERSION}"\nnotation: x02220\nsparkle: true\n`)).toThrow(
+      /unrecognized field "sparkle"/,
+    );
+  });
+
+  it("warns about a newer file, dropping fields it doesn't recognize", () => {
+    const { doc, warnings } = parseDocumentWithWarnings(
+      'type: chords\nversion: "999.0.0"\nsparkle: true\ncsv: |\n  notes\n  x02220\ndefaults:\n  glitter: "1"\n  root: "5"\n',
+    );
+    expect(warnings[0]).toMatch(/written by FretCharts 999\.0\.0, newer than this one/);
+    expect(warnings).toContain('ignored unrecognized field "sparkle"');
+    expect(warnings).toContain('ignored unrecognized field "defaults.glitter"');
+    expect(doc).not.toHaveProperty("sparkle");
+    expect(doc.type === "chords" && doc.defaults).toEqual({ root: "5" });
+    expect(() => buildDocument(doc, "/tmp")).not.toThrow();
+  });
+
+  it("treats a prerelease of the next version as newer", () => {
+    const [major, minor] = VERSION.split(".").map(Number);
+    const next = `${major}.${minor + 1}.0-rc.1`;
+    expect(parseDocumentWithWarnings(`type: chord\nversion: "${next}"\nnotation: x02220\n`).warnings).toHaveLength(1);
+  });
+
+  it("still rejects an unknown type from a newer file, suggesting an upgrade", () => {
+    expect(() => parseDocument('type: hologram\nversion: "999.0.0"\n')).toThrow(/upgrading from/);
+  });
+});
+
 describe("runDocument", () => {
   let cap: { stderr: string };
   const tmpFiles: string[] = [];
@@ -498,6 +547,16 @@ describe("runDocument", () => {
     const code = await runDocument({ documentPath: docPath, output: outPath });
     expect(code).toBe(0);
     expect(fs.readFileSync(outPath, "utf8")).toContain("<svg");
+  });
+
+  it("warns on stderr but still renders a file from a newer version", async () => {
+    const docPath = writeTmp("chart.yaml", 'type: chord\nversion: "999.0.0"\nnotation: "x02220"\nsparkle: true\n');
+    const outPath = tmpPath("chart.svg");
+    tmpFiles.push(outPath);
+    expect(await runDocument({ documentPath: docPath, output: outPath })).toBe(0);
+    expect(fs.readFileSync(outPath, "utf8")).toContain("<svg");
+    expect(cap.stderr).toMatch(/warning: this file was written by FretCharts 999\.0\.0/);
+    expect(cap.stderr).toContain('warning: ignored unrecognized field "sparkle"');
   });
 
   it("prints a type: neck document's fret-range auto-expansion warning to stderr", async () => {
@@ -708,7 +767,7 @@ describe("runDocument", () => {
       const code = await runDocument({ documentPath: docPath, output: outPath });
       expect(code).toBe(0);
       const parsed = JSON.parse(fs.readFileSync(outPath, "utf8"));
-      expect(parsed).toEqual({ type: "chord", notation: "x02220", label: "A" });
+      expect(parsed).toEqual({ type: "chord", version: VERSION, notation: "x02220", label: "A" });
     });
 
     it("leaves stylesheetFile/defsFile/csvFile references as-is, not resolved/embedded", async () => {

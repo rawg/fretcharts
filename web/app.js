@@ -1325,6 +1325,7 @@ function applyDocumentText(text) {
   if (!textArea) return;
   textArea.value = text;
   hide(errorEl);
+  hide($('document-warning'));
 
   var parsed;
   try {
@@ -1351,6 +1352,23 @@ function applyDocumentText(text) {
         'fields can represent. Loaded as text below instead -- edit it here, or use inline ' +
         'stylesheet:/defs:/csv: fields instead.'
     );
+    TabControl.activateTab('tab-document');
+    return;
+  }
+
+  // A newer file may use fields no tab here knows about, which populating
+  // a tab would silently drop -- render it as text instead, where the
+  // renderer does a best-effort job and lists what it had to ignore.
+  if (isNewerVersion(parsed.fields.version)) {
+    var warningEl = $('document-warning');
+    warningEl.textContent =
+      'This file was written by FretCharts ' +
+      parsed.fields.version +
+      ', newer than this one (' +
+      currentVersion() +
+      '). Loaded as text below instead of into a tab, so nothing it uses is lost -- ' +
+      'rendering it here is a best effort, and some features may be missing or look different.';
+    show(warningEl);
     TabControl.activateTab('tab-document');
     return;
   }
@@ -1405,10 +1423,26 @@ function triggerDownload(filename, text, mimeType) {
 // (see the Live document preview section below), but it reads more like a
 // standing format preference than a preview toggle -- so the Download/
 // Copy link buttons honor it too, via this shared lookup, rather than
-// adding a second, redundant checkbox just for those buttons.
-function compactNotesOption(prefix) {
+// adding a second, redundant checkbox just for those buttons. Every
+// generated file is also stamped with this release's version (see
+// src/version.ts), the minimum needed to render it.
+function stringifyOptions(prefix) {
   var toggle = $(prefix + '-document-preview-compact');
-  return toggle ? { compactNotes: toggle.checked } : undefined;
+  return { compactNotes: toggle ? toggle.checked : undefined, version: currentVersion() };
+}
+
+function currentVersion() {
+  var engine = window.ChordChartsEngine;
+  return engine && engine.VERSION ? engine.VERSION : undefined;
+}
+
+// True when `version` (a parsed file's own `version` field) names a newer
+// release than this one. Anything that isn't a well-formed version is left
+// for the real parser behind /document to reject.
+function isNewerVersion(version) {
+  var engine = window.ChordChartsEngine;
+  if (!engine || !engine.VERSION || typeof version !== 'string' || !engine.isVersion(version)) return false;
+  return engine.compareVersions(version, engine.VERSION) > 0;
 }
 
 // `collectFn` returns a fields object matching `docType`'s document
@@ -1419,7 +1453,7 @@ function initDownloadButton(prefix, docType, collectFn) {
   var btn = $(prefix + '-download');
   if (!btn || !collectFn) return;
   btn.addEventListener('click', function () {
-    var yamlText = DocumentSync.stringify(docType, collectFn(), compactNotesOption(prefix));
+    var yamlText = DocumentSync.stringify(docType, collectFn(), stringifyOptions(prefix));
     triggerDownload(prefix + '.yaml', yamlText);
   });
 }
@@ -1536,7 +1570,7 @@ function initShareButton(prefix, docType, collectFn) {
   var statusEl = $(prefix + '-share-status');
   if (!btn || !collectFn) return;
   btn.addEventListener('click', function () {
-    shareDocumentText(DocumentSync.stringify(docType, collectFn(), compactNotesOption(prefix)), statusEl);
+    shareDocumentText(DocumentSync.stringify(docType, collectFn(), stringifyOptions(prefix)), statusEl);
   });
 }
 
@@ -1570,7 +1604,7 @@ function initShareButtons() {
 // comment). Scale chart/Neck diagram also get a "Compact notation for
 // notes" checkbox (id "${prefix}-document-preview-compact") toggling
 // `notes` between a compact-notation string ("6:3:R;5:2:b3") and the native
-// YAML list -- see compactNotesOption above, which the Download/Copy link
+// YAML list -- see stringifyOptions above, which the Download/Copy link
 // buttons also read from this same checkbox, so the preview always matches
 // what actually gets downloaded/shared. Single/Bulk have no such checkbox
 // (no notes field), so they always preview the one form their document
@@ -1598,7 +1632,7 @@ function initDocumentPreview(prefix, docType, collectFn) {
   if (!form || !pre || !collectFn) return;
 
   function refresh() {
-    pre.textContent = DocumentSync.stringify(docType, collectFn(), compactNotesOption(prefix));
+    pre.textContent = DocumentSync.stringify(docType, collectFn(), stringifyOptions(prefix));
   }
 
   form.addEventListener('input', refresh);

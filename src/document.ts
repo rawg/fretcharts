@@ -41,6 +41,7 @@ import { FretBracket, NoteMarker } from "./types";
 import { writeSvgOutput, isDocumentOutputPath, writeDocumentOutput } from "./outputWriter";
 import { transposeBrackets, transposeNotation, transposeMarkers, transposeFretRange } from "./transpose";
 import { parseTuning, DEFAULT_TUNING } from "./tuning";
+import { VERSION, compareVersions, isVersion } from "./version";
 
 /** Raised for malformed document structure -- unknown/missing `type`, unrecognized fields, conflicting fields, or a `stylesheetFile`/`csvFile` that can't be read. */
 export class DocumentError extends Error {
@@ -52,6 +53,8 @@ export class DocumentError extends Error {
 }
 
 interface DocumentCommonFields {
+  /** The FretCharts version that wrote this file -- the minimum needed to render it. See parseDocumentWithWarnings. */
+  version?: string;
   label?: string;
   tuning?: string;
   labelTuning?: boolean;
@@ -107,6 +110,8 @@ export interface NeckDocument extends DocumentCommonFields {
 
 export interface ChordsDocument {
   type: "chords";
+  /** See DocumentCommonFields.version. */
+  version?: string;
   /** Raw CSV text, typically a YAML block scalar (`csv: |`). Mutually exclusive with `csvFile` -- exactly one is required. */
   csv?: string;
   /** Path to a CSV file, resolved relative to this document's own directory. */
@@ -142,6 +147,7 @@ interface FieldSpec {
 }
 
 const COMMON_FIELDS: FieldSpec[] = [
+  { key: "version", type: "string" },
   { key: "label", type: "string" },
   { key: "tuning", type: "string" },
   { key: "labelTuning", type: "boolean" },
@@ -185,6 +191,7 @@ const NECK_FIELDS: FieldSpec[] = [
 ];
 
 const CHORDS_FIELDS: FieldSpec[] = [
+  { key: "version", type: "string" },
   { key: "csv", type: "string" },
   { key: "csvFile", type: "string" },
   { key: "columns", type: "number" },
@@ -225,12 +232,26 @@ const TYPE_DESCRIPTIONS: Record<FieldType, string> = {
   stringOrArray: "a string or a list",
 };
 
-/** Validates `obj`'s keys/types against `specs` for a document of type `docType`. Unrecognized keys and wrong-typed/missing-required fields are both hard errors -- see DocumentError's doc comment. */
-function validateFields(obj: Record<string, unknown>, specs: FieldSpec[], docType: string): void {
+/**
+ * Set when a file comes from a newer FretCharts than this one: an
+ * unrecognized field is then dropped with a warning rather than rejected,
+ * since it's most likely a feature this version doesn't have yet.
+ */
+type Leniency = { warnings: string[] } | undefined;
+
+/** Throws `message` for an unrecognized field -- or, for a newer file (see Leniency), deletes it from `obj` and warns. */
+function rejectUnrecognized(obj: Record<string, unknown>, key: string, name: string, message: string, lenient: Leniency): void {
+  if (!lenient) throw new DocumentError(message);
+  delete obj[key];
+  lenient.warnings.push(`ignored unrecognized field "${name}"`);
+}
+
+/** Validates `obj`'s keys/types against `specs` for a document of type `docType`. Unrecognized keys and wrong-typed/missing-required fields are both hard errors -- see DocumentError's doc comment -- except for the Leniency case above. */
+function validateFields(obj: Record<string, unknown>, specs: FieldSpec[], docType: string, lenient: Leniency): void {
   const allowed = new Set(["type", ...specs.map((s) => s.key)]);
   for (const key of Object.keys(obj)) {
     if (!allowed.has(key)) {
-      throw new DocumentError(`unrecognized field "${key}" for type: ${docType}`);
+      rejectUnrecognized(obj, key, key, `unrecognized field "${key}" for type: ${docType}`, lenient);
     }
   }
   for (const spec of specs) {
@@ -291,7 +312,7 @@ function resolveBracketsValue(brackets: string | unknown[] | undefined): FretBra
   return typeof brackets === "string" ? parseBrackets(brackets) : bracketsFromArray(brackets);
 }
 
-function validateBulkDefaults(defaults: unknown): void {
+function validateBulkDefaults(defaults: unknown, lenient: Leniency): void {
   // validateFields already confirmed this is a plain object via the
   // "object" FieldType check before this is ever called.
   const obj = defaults as Record<string, unknown>;
@@ -303,7 +324,7 @@ function validateBulkDefaults(defaults: unknown): void {
   }
   for (const key of Object.keys(obj)) {
     if (!ALLOWED_BULK_DEFAULT_FIELDS.has(key as keyof RawChartFields)) {
-      throw new DocumentError(`"defaults.${key}" is not a recognized field`);
+      rejectUnrecognized(obj, key, `defaults.${key}`, `"defaults.${key}" is not a recognized field`, lenient);
     }
   }
 }
@@ -322,6 +343,23 @@ function validateBulkDefaults(defaults: unknown): void {
  *   `notes` string number).
  */
 export function parseDocument(yamlText: string): ChartDocument {
+  return parseDocumentWithWarnings(yamlText).doc;
+}
+
+/**
+ * Same as {@link parseDocument}, plus non-fatal warnings. A file's
+ * optional `version` names the FretCharts release that wrote it -- the
+ * minimum needed to render it. When that's newer than this release
+ * ({@link VERSION}), parsing becomes best-effort: the mismatch is warned
+ * about, and unrecognized fields (top-level or in `defaults`) are dropped
+ * with a warning each instead of rejected. Everything else -- an unknown
+ * `type`, a wrong-typed or malformed value -- still throws, since there's
+ * nothing sensible to render.
+ *
+ * @throws same as parseDocument, plus {@link DocumentError} for a
+ *   `version` that isn't an `X.Y.Z` version string.
+ */
+export function parseDocumentWithWarnings(yamlText: string): { doc: ChartDocument; warnings: string[] } {
   let parsed: unknown;
   try {
     parsed = parseYamlText(yamlText);
@@ -335,6 +373,19 @@ export function parseDocument(yamlText: string): ChartDocument {
   }
   const obj = parsed as Record<string, unknown>;
 
+  const version = obj.version;
+  if (version !== undefined && (typeof version !== "string" || !isVersion(version))) {
+    throw new DocumentError('"version" must be a version string like "0.2.0" (quote it in YAML)');
+  }
+  const newer = version !== undefined && compareVersions(version as string, VERSION) > 0;
+  const warnings: string[] = [];
+  const lenient: Leniency = newer ? { warnings } : undefined;
+  if (newer) {
+    warnings.push(
+      `this file was written by FretCharts ${version}, newer than this one (${VERSION}); rendering it as well as possible, but some features may be missing or look different`,
+    );
+  }
+
   const type = obj.type;
   if (typeof type !== "string") {
     throw new DocumentError('document is missing a "type" field (must be one of "chord", "scale", "neck", "chords")');
@@ -342,41 +393,42 @@ export function parseDocument(yamlText: string): ChartDocument {
 
   switch (type) {
     case "chord": {
-      validateFields(obj, CHORD_FIELDS, "chord");
+      validateFields(obj, CHORD_FIELDS, "chord", lenient);
       assertNoStylesheetConflict(obj);
       resolveChartFields(rawFieldsFrom(obj));
-      return obj as unknown as ChordDocument;
+      return { doc: obj as unknown as ChordDocument, warnings };
     }
     case "scale": {
-      validateFields(obj, SCALE_FIELDS, "scale");
+      validateFields(obj, SCALE_FIELDS, "scale", lenient);
       assertNoStylesheetConflict(obj);
       resolveChartFields(rawFieldsFrom(obj));
       validateNotes(obj.notes as string | unknown[]);
       resolveBracketsValue(obj.brackets as string | unknown[] | undefined);
-      return obj as unknown as ScaleDocument;
+      return { doc: obj as unknown as ScaleDocument, warnings };
     }
     case "neck": {
-      validateFields(obj, NECK_FIELDS, "neck");
+      validateFields(obj, NECK_FIELDS, "neck", lenient);
       assertNoStylesheetConflict(obj);
       resolveChartFields(rawFieldsFrom(obj));
       validateNotes(obj.notes as string | unknown[]);
       resolveBracketsValue(obj.brackets as string | unknown[] | undefined);
-      return obj as unknown as NeckDocument;
+      return { doc: obj as unknown as NeckDocument, warnings };
     }
     case "chords": {
-      validateFields(obj, CHORDS_FIELDS, "chords");
+      validateFields(obj, CHORDS_FIELDS, "chords", lenient);
       assertNoStylesheetConflict(obj);
       if ((obj.csv === undefined) === (obj.csvFile === undefined)) {
         throw new DocumentError('type: chords requires exactly one of "csv" or "csvFile"');
       }
       if (obj.defaults !== undefined) {
-        validateBulkDefaults(obj.defaults);
+        validateBulkDefaults(obj.defaults, lenient);
       }
-      return obj as unknown as ChordsDocument;
+      return { doc: obj as unknown as ChordsDocument, warnings };
     }
     default:
       throw new DocumentError(
-        `unrecognized "type": ${JSON.stringify(type)} (must be one of "chord", "scale", "neck", "chords")`,
+        `unrecognized "type": ${JSON.stringify(type)} (must be one of "chord", "scale", "neck", "chords")` +
+          (newer ? `; this file was written by FretCharts ${version}, so upgrading from ${VERSION} may help` : ""),
       );
   }
 }
@@ -624,7 +676,10 @@ function errorMessage(err: unknown): string {
 export async function runDocument(options: RunDocumentOptions): Promise<number> {
   try {
     const yamlText = fs.readFileSync(options.documentPath, "utf8");
-    const doc = parseDocument(yamlText);
+    const { doc, warnings: parseWarnings } = parseDocumentWithWarnings(yamlText);
+    for (const warning of parseWarnings) {
+      process.stderr.write(`warning: ${warning}\n`);
+    }
     if (options.transpose !== undefined) {
       doc.transpose = options.transpose;
     }
