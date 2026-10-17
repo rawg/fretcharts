@@ -354,7 +354,9 @@ rather than the leftmost column.
 
 Plus anything from `--note-classes`/`--root` on the targeted dot or open
 circle (and its label, if any). In bulk mode, the composite grid also has
-`chord-collection-label` (the `--collection-label` text) and
+`chord-collection-label` (the `--collection-label` text),
+`chord-collection-section-label` (each `header` row's text -- see
+[Section headers](#section-headers)), and
 `chord-collection-background` (a rect covering the *entire* composite,
 including the gutters between charts -- distinct from each individual
 chart's own `chord-chart-background`, which only covers its own cell).
@@ -451,6 +453,28 @@ Every chart in the grid gets `--stylesheet root.css` and `--columns 4` as
 defaults; each row supplies its own `notes`, `label`, `root`, and
 (optionally) `finger-positions`. `--collection-label` applies once, to the
 grid as a whole.
+
+### Section headers
+
+An optional `header` column splits the grid into titled sections, so one
+image can hold several progressions. A row with a non-empty `header` cell
+starts a new section on a fresh grid row, with that text centered above it
+(below the `--collection-label`, if any). The row can carry the section's
+first chart, or leave `notes` blank to be a heading-only row:
+
+```csv
+header,notes,label
+I IV V in G,320003,G
+,x32010,C
+,xx0232,D
+ii V I in C,,
+,xx0211,Dm
+,320001,G7
+,x32010,C
+```
+
+Charts before the first header row form an untitled leading section. A row
+with neither `notes` nor `header` is still an error.
 
 **Caveat:** if different rows use different `--stylesheet`/`stylesheet`
 column values, each row's CSS is embedded in that row's own nested `<svg>`,

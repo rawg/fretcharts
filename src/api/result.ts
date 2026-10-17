@@ -16,6 +16,7 @@ import { ChartInputError } from "../chartFieldResolver";
 import { DocumentError } from "../document";
 import { ChordSymbolError } from "../chordSymbol";
 import { TriadSearchError } from "../triads";
+import type { BulkGrid, BulkSection } from "../bulk";
 
 export interface RenderOutput {
   svg: string;
@@ -29,13 +30,15 @@ export interface RenderOutput {
 
 export interface GridParts {
   charts: string[];
+  /** The same charts grouped under the CSV's `header` rows. */
+  sections: BulkSection[];
   columns: number;
   collectionLabel?: string;
 }
 
 /** The print-view parts of a bulk render -- everything but the composite svg. */
-export function gridParts(grid: { charts: string[]; columns: number; collectionLabel?: string }): GridParts {
-  return { charts: grid.charts, columns: grid.columns, collectionLabel: grid.collectionLabel };
+export function gridParts(grid: BulkGrid): GridParts {
+  return { charts: grid.charts, sections: grid.sections, columns: grid.columns, collectionLabel: grid.collectionLabel };
 }
 
 export type ApiResult = { ok: true; data: RenderOutput } | { ok: false; error: string };

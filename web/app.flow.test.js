@@ -1326,6 +1326,37 @@ describe('Printing', () => {
     expect(window.document.querySelectorAll('#panel-bulk .print-grid')).toHaveLength(1);
   });
 
+  it('prints each header section under its own heading, starting a fresh row', async () => {
+    const window = loadApp();
+    const chart = '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"></svg>';
+    stubRender(window, {
+      ok: true,
+      data: {
+        format: 'svg',
+        svg: '<svg></svg>',
+        grid: {
+          charts: [chart, chart, chart],
+          sections: [
+            { header: 'I IV V', charts: [chart] },
+            { header: 'ii V I', charts: [chart, chart] }
+          ],
+          columns: 4
+        }
+      }
+    });
+    window.document.getElementById('bulk-csv').value = 'notes\nx02220\n';
+    submit(window, 'form-bulk');
+    await waitFor(function () {
+      return window.document.querySelector('#panel-bulk .print-grid') !== null;
+    });
+
+    const grid = window.document.querySelector('#panel-bulk .print-grid');
+    const parts = Array.from(grid.children).map(function (el) {
+      return el.className === 'print-grid-section-title' ? el.textContent : el.children.length;
+    });
+    expect(parts).toEqual(['I IV V', 1, 'ii V I', 2]);
+  });
+
   it('the Start tab has its own Print button', () => {
     const window = loadApp();
     let printed = 0;

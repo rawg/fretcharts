@@ -39,6 +39,14 @@ import type { ChordsDocument } from "./document";
 const REQUIRED_NOTATION_COLUMN = "notes";
 
 /**
+ * Optional column that starts a new section of the grid: a row with a
+ * non-empty `header` cell begins a fresh grid row under that heading. The
+ * row may also carry its own chart (the section's first), or leave
+ * `notes` blank to be a heading-only row.
+ */
+const HEADER_COLUMN = "header";
+
+/**
  * CSV column heading -> RawChartFields key. "notes" (notation) is handled
  * separately. Exported so document.ts can validate a `type: chords`
  * document's `defaults` object against the exact same set of
@@ -83,6 +91,16 @@ const GUTTER = 20;
 const COLLECTION_LABEL_BAND_HEIGHT = 50;
 const COLLECTION_LABEL_FONT_SIZE = 28;
 
+/** px band reserved above each section that has a header (see HEADER_COLUMN). */
+const SECTION_LABEL_BAND_HEIGHT = 40;
+const SECTION_LABEL_FONT_SIZE = 22;
+
+/** A run of charts under one optional heading. Only a grid's first section can lack a header. */
+export interface BulkSection {
+  header?: string;
+  charts: string[];
+}
+
 /** Escapes the basic XML special characters in the collection label's text content. */
 function escapeXml(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -126,39 +144,50 @@ function svgDimensions(svg: string): { width: number; height: number } {
   return { width, height };
 }
 
+function textElement(className: string, x: number, y: number, fontSize: number, text: string): string {
+  return `<text class="${className}" x="${x}" y="${y}" font-family="Arial, Helvetica, sans-serif" font-size="${fontSize}" font-weight="bold" text-anchor="middle" dominant-baseline="middle" fill="black">${escapeXml(
+    text,
+  )}</text>`;
+}
+
 /**
  * Arranges chart SVGs into a grid, `columns` per row, each cell top-left
- * aligned. `collectionLabel`, if given, is centered in a band above the
- * grid, and every chart is shifted down to make room for it.
+ * aligned. Each section starts on a fresh row, under its header (if any)
+ * centered in its own band. `collectionLabel`, if given, is centered in a
+ * band above everything, and every chart is shifted down to make room.
  */
-function composeGrid(svgs: string[], columns: number, collectionLabel?: string): string {
-  const dims = svgs.map(svgDimensions);
+function composeGrid(sections: BulkSection[], columns: number, collectionLabel?: string): string {
+  const allCharts = sections.flatMap((s) => s.charts);
+  const dims = allCharts.map(svgDimensions);
   const cellWidth = Math.max(...dims.map((d) => d.width));
   const cellHeight = Math.max(...dims.map((d) => d.height));
 
-  const rows = Math.ceil(svgs.length / columns);
-  const cols = Math.min(columns, svgs.length);
-  const gridWidth = cols * cellWidth + (cols - 1) * GUTTER;
-  const gridHeight = rows * cellHeight + (rows - 1) * GUTTER;
+  const cols = Math.min(columns, Math.max(...sections.map((s) => s.charts.length)));
+  const totalWidth = cols * cellWidth + (cols - 1) * GUTTER;
 
   const labelBandHeight = collectionLabel ? COLLECTION_LABEL_BAND_HEIGHT : 0;
-  const totalWidth = gridWidth;
-  const totalHeight = labelBandHeight + gridHeight;
-
-  const positioned = svgs.map((svg, i) => {
-    const col = i % columns;
-    const row = Math.floor(i / columns);
-    const x = col * (cellWidth + GUTTER);
-    const y = labelBandHeight + row * (cellHeight + GUTTER);
-    return positionSvg(svg, x, y);
+  const elements: string[] = [];
+  let y = labelBandHeight;
+  sections.forEach((section, sectionIndex) => {
+    if (sectionIndex > 0) y += GUTTER;
+    if (section.header !== undefined) {
+      elements.push(
+        textElement("chord-collection-section-label", totalWidth / 2, y + SECTION_LABEL_BAND_HEIGHT / 2, SECTION_LABEL_FONT_SIZE, section.header),
+      );
+      y += SECTION_LABEL_BAND_HEIGHT;
+    }
+    section.charts.forEach((svg, i) => {
+      const col = i % columns;
+      const row = Math.floor(i / columns);
+      elements.push(positionSvg(svg, col * (cellWidth + GUTTER), y + row * (cellHeight + GUTTER)));
+    });
+    const rows = Math.ceil(section.charts.length / columns);
+    if (rows > 0) y += rows * cellHeight + (rows - 1) * GUTTER;
   });
+  const totalHeight = y;
 
   const labelElement = collectionLabel
-    ? `<text class="chord-collection-label" x="${totalWidth / 2}" y="${
-        labelBandHeight / 2
-      }" font-family="Arial, Helvetica, sans-serif" font-size="${COLLECTION_LABEL_FONT_SIZE}" font-weight="bold" text-anchor="middle" dominant-baseline="middle" fill="black">${escapeXml(
-        collectionLabel,
-      )}</text>`
+    ? textElement("chord-collection-label", totalWidth / 2, labelBandHeight / 2, COLLECTION_LABEL_FONT_SIZE, collectionLabel)
     : "";
 
   // Covers the full canvas, including the gutters between charts -- each
@@ -167,14 +196,16 @@ function composeGrid(svgs: string[], columns: number, collectionLabel?: string):
   // stylesheet overrides.
   const backgroundElement = `<rect class="chord-collection-background" x="0" y="0" width="${totalWidth}" height="${totalHeight}" fill="none" />`;
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${totalWidth}" height="${totalHeight}" viewBox="0 0 ${totalWidth} ${totalHeight}">${backgroundElement}${labelElement}${positioned.join(
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${totalWidth}" height="${totalHeight}" viewBox="0 0 ${totalWidth} ${totalHeight}">${backgroundElement}${labelElement}${elements.join(
     "",
   )}</svg>`;
 }
 
 /**
  * Renders every row of `csvText` and composites the results into one grid
- * SVG, `columns` charts per row, wrapping to additional rows as needed.
+ * SVG, `columns` charts per row, wrapping to additional rows as needed. A
+ * row with a `header` cell starts a new section on a fresh row, titled by
+ * that text (see HEADER_COLUMN).
  * `collectionLabel`, if given, titles the whole composite image, centered
  * above the grid. `inlineStylesheet`, if given, is raw CSS text used as the
  * default stylesheet for any row that doesn't resolve its own
@@ -212,8 +243,10 @@ export function buildBulkSvg(
 export interface BulkGrid {
   /** The composite grid, exactly what buildBulkSvg returns. */
   svg: string;
-  /** Each row's own chart SVG, in CSV order. */
+  /** Each row's own chart SVG, in CSV order, across every section. */
   charts: string[];
+  /** The same charts grouped by `header` row; a single headerless section when the CSV has none. */
+  sections: BulkSection[];
   columns: number;
   collectionLabel?: string;
 }
@@ -257,10 +290,14 @@ export function buildBulkGrid(
     throw new ChartInputError('CSV file must have a "notes" column for chord notation');
   }
 
-  const svgs = rows.map((row, i) => {
+  const sections: BulkSection[] = [{ charts: [] }];
+  rows.forEach((row, i) => {
     const rowNumber = i + 2; // 1-based, plus the header row
+    const header = row[HEADER_COLUMN];
+    if (header) sections.push({ header, charts: [] });
     const notation = row[REQUIRED_NOTATION_COLUMN];
     if (!notation) {
+      if (header) return;
       throw new ChartInputError(`row ${rowNumber}: missing chord notation in the "notes" column`);
     }
 
@@ -294,7 +331,7 @@ export function buildBulkGrid(
         transpose,
         svgOptions: stylesheet !== undefined || defs !== undefined ? { stylesheet, defs } : undefined,
       });
-      return chart.svg;
+      sections[sections.length - 1].charts.push(chart.svg);
     } catch (err) {
       if (err instanceof Error) {
         throw new ChartInputError(`row ${rowNumber} (${JSON.stringify(notation)}): ${err.message}`);
@@ -303,7 +340,14 @@ export function buildBulkGrid(
     }
   });
 
-  return { svg: composeGrid(svgs, columns, collectionLabel), charts: svgs, columns, collectionLabel };
+  // Drop the implicit leading section when the CSV opens with a header row.
+  if (sections[0].charts.length === 0) sections.shift();
+  const charts = sections.flatMap((s) => s.charts);
+  if (charts.length === 0) {
+    throw new ChartInputError("CSV file has no chord rows, only headers");
+  }
+
+  return { svg: composeGrid(sections, columns, collectionLabel), charts, sections, columns, collectionLabel };
 }
 
 /** Minimal RFC4180-style field escaping: quotes a field only if it contains a comma, quote, or newline, doubling any internal quote -- the same rule buildBulkSvg's own CSV-quoting error message already describes to users. */
@@ -357,6 +401,7 @@ export function transposeCsvNotes(csvText: string, defaults: RawChartFields, hal
     const rowNumber = i + 2; // 1-based, plus the header row
     const notation = row[REQUIRED_NOTATION_COLUMN];
     if (!notation) {
+      if (row[HEADER_COLUMN]) return header.map((column) => csvField(row[column] ?? "")).join(",");
       throw new ChartInputError(`row ${rowNumber}: missing chord notation in the "notes" column`);
     }
 
