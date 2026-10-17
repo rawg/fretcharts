@@ -397,22 +397,31 @@ function buildPrintGrid(grid) {
   }
 
   var widest = Math.max.apply(null, grid.charts.map(svgWidth));
-  var row;
-  grid.charts.forEach(function (svg, i) {
-    if (i % grid.columns === 0) {
-      row = document.createElement('div');
-      row.className = 'print-grid-row';
-      row.style.gridTemplateColumns = 'repeat(' + grid.columns + ', minmax(0, 1fr))';
-      root.appendChild(row);
+  var sections = Array.isArray(grid.sections) ? grid.sections : [{ charts: grid.charts }];
+  sections.forEach(function (section) {
+    if (section.header) {
+      var heading = document.createElement('h3');
+      heading.className = 'print-grid-section-title';
+      heading.textContent = section.header;
+      root.appendChild(heading);
     }
-    var cell = document.createElement('div');
-    cell.className = 'print-grid-cell';
-    var img = document.createElement('img');
-    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-    img.alt = '';
-    if (widest > 0) img.style.width = (svgWidth(svg) / widest) * 100 + '%';
-    cell.appendChild(img);
-    row.appendChild(cell);
+    var row;
+    section.charts.forEach(function (svg, i) {
+      if (i % grid.columns === 0) {
+        row = document.createElement('div');
+        row.className = 'print-grid-row';
+        row.style.gridTemplateColumns = 'repeat(' + grid.columns + ', minmax(0, 1fr))';
+        root.appendChild(row);
+      }
+      var cell = document.createElement('div');
+      cell.className = 'print-grid-cell';
+      var img = document.createElement('img');
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      img.alt = '';
+      if (widest > 0) img.style.width = (svgWidth(svg) / widest) * 100 + '%';
+      cell.appendChild(img);
+      row.appendChild(cell);
+    });
   });
   return root;
 }

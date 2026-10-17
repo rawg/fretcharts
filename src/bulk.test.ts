@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { buildBulkSvg, transposeCsvNotes } from "./bulk";
+import { buildBulkGrid, buildBulkSvg, transposeCsvNotes } from "./bulk";
 import { ChartInputError } from "./chartFieldResolver";
 import type { RawChartFields } from "./chartFieldResolver";
 
@@ -234,6 +234,76 @@ describe("buildBulkSvg", () => {
     });
   });
 
+  describe("header rows", () => {
+    const chartPositions = (svg: string) =>
+      [...svg.matchAll(/<svg x="([-\d.]+)" y="([-\d.]+)" xmlns="[^"]*" class="chord-chart"/g)].map((m) => ({
+        x: Number(m[1]),
+        y: Number(m[2]),
+      }));
+    const sectionLabels = (svg: string) =>
+      [...svg.matchAll(/<text class="chord-collection-section-label" x="([-\d.]+)" y="([-\d.]+)"[^>]*>([^<]*)<\/text>/g)].map(
+        (m) => ({ x: Number(m[1]), y: Number(m[2]), text: m[3] }),
+      );
+
+    it("renders each header above its own section, starting a fresh grid row", () => {
+      const csv = "header,notes,label\nOne,x02220,A\n,320003,G\nTwo,xx0232,D\n";
+      const svg = buildBulkSvg(csv, {}, 4);
+      const labels = sectionLabels(svg);
+      expect(labels.map((l) => l.text)).toEqual(["One", "Two"]);
+      const charts = chartPositions(svg);
+      expect(charts).toHaveLength(3);
+      // D starts a new row at the left, below both A/G and the "Two" heading.
+      expect(charts[0].y).toBe(charts[1].y);
+      expect(charts[2].x).toBe(0);
+      expect(charts[2].y).toBeGreaterThan(labels[1].y);
+      expect(labels[1].y).toBeGreaterThan(charts[0].y);
+      expect(labels[0].y).toBeLessThan(charts[0].y);
+    });
+
+    it("accepts a heading-only row with blank notes", () => {
+      const csv = "notes,header\n,First\nx02220,\n,Second\n320003,\n";
+      const grid = buildBulkGrid(csv, {}, 4);
+      expect(grid.sections.map((s) => [s.header, s.charts.length])).toEqual([
+        ["First", 1],
+        ["Second", 1],
+      ]);
+      expect(grid.charts).toHaveLength(2);
+    });
+
+    it("keeps charts before the first header in an untitled leading section", () => {
+      const csv = "notes,header\nx02220,\n320003,Later\n";
+      const grid = buildBulkGrid(csv, {}, 4);
+      expect(grid.sections.map((s) => s.header)).toEqual([undefined, "Later"]);
+    });
+
+    it("centers headers over the full grid width, below the collection label", () => {
+      const csv = "notes,header\nx02220,Short\nx02220,Wide\n320003,\nxx0232,\n";
+      const svg = buildBulkSvg(csv, {}, 4, "Title");
+      const width = Number(/^<svg[^>]*width="([\d.]+)"/.exec(svg)?.[1]);
+      const titleY = Number(/<text class="chord-collection-label" x="[-\d.]+" y="([-\d.]+)"/.exec(svg)?.[1]);
+      const labels = sectionLabels(svg);
+      expect(labels.every((l) => l.x === width / 2)).toBe(true);
+      expect(labels[0].y).toBeGreaterThan(titleY);
+    });
+
+    it("leaves the geometry unchanged when the header column is present but empty", () => {
+      expect(buildBulkSvg("notes,header\nx02220,\n320003,\n", {}, 4)).toBe(buildBulkSvg("notes\nx02220\n320003\n", {}, 4));
+    });
+
+    it("XML-escapes header text", () => {
+      const svg = buildBulkSvg("notes,header\nx02220,I & <IV>\n", {}, 4);
+      expect(svg).toContain("I &amp; &lt;IV&gt;");
+    });
+
+    it("still errors on a row with neither notes nor a header", () => {
+      expect(() => buildBulkSvg("notes,header\n,A\n,\n", {}, 4)).toThrow(/row 3/);
+    });
+
+    it("errors when the CSV has headers but no charts", () => {
+      expect(() => buildBulkSvg("notes,header\n,A\n", {}, 4)).toThrow(/only headers/);
+    });
+  });
+
   describe("background", () => {
     it("includes a full-canvas background rect, transparent by default, covering the whole composite (including gutters)", () => {
       const csv = "notes\nx02220\n320003\nxxxxxx\n022100\n";
@@ -403,6 +473,11 @@ describe("transposeCsvNotes", () => {
   it("throws a row-numbered ChartInputError when the shift would put a note below the nut", () => {
     const csv = "notes\n555555\nx02220\n";
     expect(() => transposeCsvNotes(csv, {}, -3)).toThrow(/row 3/);
+  });
+
+  it("passes heading-only rows through untouched", () => {
+    const csv = "header,notes\nOne,\n,x02220\n";
+    expect(transposeCsvNotes(csv, {}, 2)).toBe("header,notes\nOne,\n,x 2 4 4 4 2\n");
   });
 
   it("throws a row-numbered ChartInputError for invalid notation", () => {
