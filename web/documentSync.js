@@ -286,12 +286,15 @@
    * emit an array as compact-notation text instead, one marker per line
    * (used by the web UI's live document preview/"FretCharts File"/"Copy
    * link" buttons, to match how someone would actually hand-write a
-   * scale/neck FretCharts file's notes).
+   * scale/neck FretCharts file's notes). `options.version`, if given, is
+   * written as the file's `version` right after `type` -- it takes the
+   * place of any `fields.version`, which is never written.
    */
   function stringify(type, fields, options) {
     fields = fields || {};
     options = options || {};
     var lines = ['type: ' + type];
+    if (options.version) lines.push('version: ' + scalarFor(options.version));
 
     if (type === 'chord') {
       CHORD_FIELD_ORDER.forEach(function (key) {

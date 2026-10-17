@@ -646,6 +646,30 @@ silent typo than a spreadsheet's bookkeeping column, unlike bulk mode's CSV
 columns (see [Bulk mode](#bulk-mode) above), which *are* lenient about
 unrecognized headings.
 
+### Versions
+
+A file may carry a `version:` -- the FretCharts release that wrote it,
+and so the minimum needed to render it. Every file FretCharts writes (the
+CLI's `.yaml`/`.yml`/`.json` `--output`, and the web UI's download, Copy
+link, and live preview) is stamped with the running version, right after
+`type:`; reformatting a file with `--file` restamps it. Hand-written files
+can leave it out.
+
+A file from a *newer* release than the one reading it still renders, as a
+best effort: FretCharts prints a warning, and any field it doesn't
+recognize -- most likely a feature added since -- is dropped with a
+warning of its own instead of being an error. A wrong-typed value or an
+unknown `type:` still fails, since there's nothing sensible to render. The
+web UI keeps such a file as text on the File tab rather than
+loading it into a tab whose fields would silently drop what it doesn't
+know about.
+
+```yaml
+type: chord
+version: 0.2.0
+notation: x02220
+```
+
 `--file` is mutually exclusive with a `notation` argument, `--notes`,
 `--bulk`, `--neck`, and every other field flag — the file is meant to
 be fully self-contained. Only `--output <path>` layers on top, overriding
@@ -943,6 +967,16 @@ npm test # vitest run
 npm run build # tsc, then chmod +x on the CLI entry point
 npm run build:web # esbuild bundle of src/browser/engine.ts -> web/engine.js
 ```
+
+### Releasing
+
+`package.json`'s `version` is the one source of the running version:
+`--version` prints it, and it's what gets stamped into written FretCharts
+files. Bump it and tag in one step with `npm version <x.y.z>` (or
+`npm version <x.y.z>-rc.1` for a prerelease), then push the tag. The
+release workflow refuses a tag that doesn't match `package.json`. A
+prerelease sorts before its release, so a file written by `0.2.0-rc.1`
+renders without a warning on `0.2.0`.
 
 The test suite includes an exhaustive check of every legal 6-string chord
 (~1.4M combinations) confirming `chordparse.ts`'s notation is never

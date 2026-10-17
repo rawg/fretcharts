@@ -24,7 +24,7 @@ import {
   progressionToCsv,
 } from "./triads";
 
-const PACKAGE_VERSION = (require("../package.json") as { version: string }).version;
+import { VERSION } from "./version";
 
 export interface TriadCliOptions {
   chords: string[];
@@ -48,7 +48,7 @@ function buildProgram(): Command {
       "Find one triad voicing per chord of a progression, all on the same three adjacent strings, " +
         "and write them as a FretCharts bulk-mode CSV.",
     )
-    .version(PACKAGE_VERSION)
+    .version(VERSION)
     .argument("<chords...>", 'chord symbols, e.g. D Bm G A7 (supported: maj, m, dim, aug, sus2, sus4, 6, m6, 7, maj7, m7, m7b5, dim7, add9)')
     .option("--key <note>", "key root, e.g. G; its first chord is the anchor. Default: the first chord's root")
     .option("--strings <list>", 'strings the triads may use, e.g. "1-4" or "1,2,3,4" (1 = highest). Default: all', parseStrings)

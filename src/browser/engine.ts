@@ -8,6 +8,10 @@
 
 import { handleRequest, RenderOutput } from "../api";
 
+// For web/app.js: stamping downloaded FretCharts files, and spotting an
+// uploaded one from a newer release (see src/version.ts).
+export { VERSION, compareVersions, isVersion } from "../version";
+
 export interface EngineResponse extends RenderOutput {
   format: "svg" | "png";
   /** `format: "png"` only: a data: URL for the rasterized image. */

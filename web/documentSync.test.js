@@ -2,6 +2,13 @@ import { describe, it, expect } from 'vitest';
 import DocumentSync from './documentSync.js';
 
 describe('DocumentSync.stringify', () => {
+  it('writes options.version right after type, ignoring any fields.version', () => {
+    const text = DocumentSync.stringify('chords', { csv: 'notes\nx02220\n', version: '0.0.1' }, { version: '1.2.3' });
+    expect(text.split('\n').slice(0, 2)).toEqual(['type: chords', 'version: 1.2.3']);
+    expect(text).not.toContain('0.0.1');
+    expect(DocumentSync.parse(text).fields.version).toBe('1.2.3');
+  });
+
   it('serializes a type: chord document with only the fields that are set', () => {
     const text = DocumentSync.stringify('chord', { notation: 'x02220', label: 'A Major', root: '5' });
     // "A Major" needs no quoting -- an internal space has no special

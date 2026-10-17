@@ -4,6 +4,7 @@ import * as os from "os";
 import * as path from "path";
 import { writeSvgOutput, isDocumentOutputPath, writeDocumentOutput } from "./outputWriter";
 import type { ChartDocument } from "./document";
+import { VERSION } from "./version";
 
 const PNG_MAGIC_BYTES = [0x89, 0x50, 0x4e, 0x47];
 const FIXTURE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10" fill="black"/></svg>`;
@@ -112,7 +113,14 @@ describe("writeSvgOutput", () => {
       const code = writeDocumentOutput(chordDoc, out);
       expect(code).toBe(0);
       const parsed = JSON.parse(fs.readFileSync(out, "utf8"));
-      expect(parsed).toEqual(chordDoc);
+      expect(parsed).toEqual({ ...chordDoc, version: VERSION });
+    });
+
+    it("stamps the current version right after type, replacing any older one", () => {
+      const out = tmpPath("chart.yaml");
+      writeDocumentOutput({ ...chordDoc, version: "0.0.1" } as ChartDocument, out);
+      const lines = fs.readFileSync(out, "utf8").split("\n");
+      expect(lines.slice(0, 2)).toEqual(["type: chord", `version: ${VERSION}`]);
     });
 
     it("writes YAML for a .yaml path", () => {

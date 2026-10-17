@@ -522,6 +522,16 @@ describe("/neck", () => {
 });
 
 describe("/document", () => {
+  it("renders a file from a newer version as a best effort, with warnings", () => {
+    const { statusCode, json } = call("/document", {
+      document: 'type: chord\nversion: "999.0.0"\nnotation: "x02220"\nsparkle: true\n',
+    });
+    expect(statusCode).toBe(200);
+    expect(json.svg).toContain("<svg");
+    expect(json.warnings[0]).toMatch(/written by FretCharts 999\.0\.0/);
+    expect(json.warnings).toContain('ignored unrecognized field "sparkle"');
+  });
+
   it("renders a type: chord document to SVG", () => {
     const { statusCode, json } = call("/document", {
       document: 'type: chord\nnotation: "x02220"\nlabel: "A"\n',
