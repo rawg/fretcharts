@@ -90,8 +90,20 @@ body {
 }
 
 .page-header h1 {
+  display: flex;
+  /* Baseline (not center) so the h1 takes its baseline from the wordmark
+     rather than the logo image, keeping it level with the subtitle. */
+  align-items: baseline;
+  gap: var(--spacing-2);
   margin: 0;
   font-size: 1.6rem;
+}
+
+.page-logo {
+  width: 1.4em;
+  height: 1.4em;
+  flex: none;
+  align-self: center;
 }
 
 .page-header h1 .accent {
@@ -965,6 +977,18 @@ button[type="submit"]:disabled {
   margin: 0.5in;
 }
 
+.page-footer {
+  margin-top: var(--spacing-6);
+  padding-top: var(--spacing-3);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.page-footer a {
+  color: inherit;
+}
+
 @media print {
   :root {
     --color-bg: #ffffff;
@@ -986,6 +1010,7 @@ button[type="submit"]:disabled {
   }
 
   .page-header,
+  .page-footer,
   .mode-toggle,
   .panel-input,
   .result-toolbar,

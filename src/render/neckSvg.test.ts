@@ -163,6 +163,16 @@ describe("renderNeckSvg", () => {
     expect(labelY).toBeLessThan(topStringY);
   });
 
+  it("keeps a fret-number label clear of a string-1 dot at the same fret", () => {
+    const layout = { ...offsetNeckLayout(), dots: [{ stringIndex: 5, fret: 5 }] };
+    const svg = renderNeckSvg(layout);
+    const dot = /<circle class="chord-dot[^"]*" cx="[-\d.]+" cy="([-\d.]+)" r="([-\d.]+)"/.exec(svg);
+    const label = /<text class="chord-neck-fret-label chord-neck-fret-label-5"[^>]*\sy="([-\d.]+)"[^>]*font-size="([-\d.]+)"/.exec(svg);
+    const dotTop = Number(dot?.[1]) - Number(dot?.[2]);
+    const labelBottom = Number(label?.[1]) + Number(label?.[2]) / 2;
+    expect(labelBottom).toBeLessThan(dotTop);
+  });
+
   it("renders two same-string, different-fret finger labels at two distinct positions (no collision)", () => {
     const svg = renderNeckSvg(offsetNeckLayout());
     const labels = svg.match(/<text class="chord-finger-label[^"]*"[^>]*>\d<\/text>/g) ?? [];

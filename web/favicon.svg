@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- A tiny chord box in the site's palette: nut, three frets, four
+       strings (six blur together at 16px), and an E-major-style shape. -->
+  <rect width="32" height="32" rx="6" fill="#131316"/>
+  <g stroke="#f2f2f4" stroke-linecap="square">
+    <path d="M6 6.5H26" stroke-width="3"/>
+    <path d="M6 13.5H26M6 20.5H26M6 27H26" stroke-width="1.5"/>
+    <path d="M6 6.5V27M12.67 6.5V27M19.33 6.5V27M26 6.5V27" stroke-width="1.5"/>
+  </g>
+  <g fill="#ef8a3d">
+    <circle cx="6" cy="17" r="3"/>
+    <circle cx="12.67" cy="17" r="3"/>
+    <circle cx="19.33" cy="10" r="3"/>
+  </g>
+</svg>

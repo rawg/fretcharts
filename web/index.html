@@ -4,12 +4,13 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>FretCharts</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 <div class="page">
   <header class="page-header">
-    <h1>Fret<span class="accent">Charts</span></h1>
+    <h1><img class="page-logo" src="favicon.svg" alt="" width="32" height="32" /><span>Fret<span class="accent">Charts</span></span></h1>
     <p class="subtitle">Guitar chord, scale, and neck diagrams from compact tablature notation.</p>
   </header>
 
@@ -909,6 +910,10 @@
     <p class="panel-intro">Complete FretCharts files, one of each kind of diagram and then some, each rendered live beside its source. Open one in the editor to change it, or copy its text into a <code>.yaml</code> file for the CLI.</p>
     <div id="gallery-list" class="gallery"></div>
   </section>
+
+  <footer class="page-footer">
+    <a href="https://github.com/rawg/fretcharts">FretCharts</a><span id="app-version"></span>
+  </footer>
 </div>
 
 <script src="engine.js"></script>
