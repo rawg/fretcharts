@@ -26,6 +26,7 @@ import {
   ResolvedChartFields,
   resolveChartFields,
   stringifyBracketsCompact,
+  stringifyPerStringCompact,
   stringifyNoteMarkersCompact,
 } from "./chartFieldResolver";
 import { buildChart, buildNeckDiagram } from "./chart";
@@ -199,9 +200,10 @@ function buildProgram(): Command {
     )
     .option("--label <text>", "optional chart title, rendered above the grid")
     .option(
-      "--string-labels <json>",
-      'optional JSON object mapping guitar string numbers ("1".."6", 6=low E .. 1=high E) to ' +
-        "per-string label text, e.g. '{\"3\":\"b3\"}'. See also --string-label-1..--string-label-6 " +
+      "--string-labels <labels>",
+      'optional per-string label text: one per string, low E first, "-" for none ("- - - 5 R 3"); ' +
+        'string:label pairs ("3:b3 1:R", 6=low E .. 1=high E); or a JSON object (\'{"3":"b3"}\'). ' +
+        'Separate with "|" instead of spaces for a label with a space in it. See also --string-label-1..--string-label-6 ' +
         "to set/override just one string at a time; those win when both are given for the same string.",
     )
     .option(
@@ -213,10 +215,9 @@ function buildProgram(): Command {
         "those win when both are given for the same string.",
     )
     .option(
-      "--note-classes <json>",
-      "optional JSON object mapping guitar string numbers to a custom CSS class added to that " +
-        "string's note (a fretted dot or an open-string circle, never a muted string), e.g. " +
-        '\'{"3":"root"}\' -- useful with --stylesheet to style "the root note" consistently ' +
+      "--note-classes <classes>",
+      "optional custom CSS class per string, added to that string's note (a fretted dot or an " +
+        'open-string circle, never a muted string), in any --string-labels form, e.g. "3:root" -- useful with --stylesheet to style "the root note" consistently ' +
         "across many charts even as its string position varies",
     )
     .option(
@@ -226,9 +227,9 @@ function buildProgram(): Command {
         "Combine with --note-classes for any other classes; --note-classes wins on conflicts.",
     )
     .option(
-      "--note-shapes <json>",
-      'optional JSON object mapping guitar string numbers to that string\'s dot shape -- ' +
-        '"circle" (the default), "square", "triangle", or "diamond" -- e.g. \'{"3":"square"}\'. ' +
+      "--note-shapes <shapes>",
+      "optional dot shape per string, in any --string-labels form -- " +
+        '"circle" (the default), "square", "triangle", or "diamond" -- e.g. "3:square". ' +
         "Only applies to a fretted note's dot, never an open-string circle or a muted string's glyph.",
     )
     .option(
@@ -580,7 +581,7 @@ function joinStringNumbers(nums: readonly (1 | 2 | 3 | 4 | 5 | 6)[] | undefined)
   return nums && nums.length > 0 ? nums.join(",") : undefined;
 }
 
-/** JSON-stringifies a resolved StringLabels/FingerPositions/NoteClasses object back into --string-labels/etc.'s raw text form, or undefined if empty. */
+/** JSON-stringifies a resolved FingerPositions object back into --finger-positions' raw text form, or undefined if empty. */
 function jsonOrUndefined(obj: Record<string, unknown> | undefined): string | undefined {
   return obj && Object.keys(obj).length > 0 ? JSON.stringify(obj) : undefined;
 }
@@ -687,10 +688,9 @@ function documentFromSingleOptions(
     };
   }
 
+  const stringCount = (options.tuning !== undefined ? parseTuning(options.tuning) : DEFAULT_TUNING).length;
   const notation = bake
-    ? transposeNotation(options.notation, options.transpose!, {
-        stringCount: (options.tuning !== undefined ? parseTuning(options.tuning) : DEFAULT_TUNING).length,
-      })
+    ? transposeNotation(options.notation, options.transpose!, { stringCount })
     : options.notation;
 
   return {
@@ -698,10 +698,10 @@ function documentFromSingleOptions(
     notation,
     label: options.label,
     tuning: options.tuning,
-    stringLabels: jsonOrUndefined(options.stringLabels),
+    stringLabels: stringifyPerStringCompact(options.stringLabels, stringCount),
     fingerPositions: jsonOrUndefined(options.fingerPositions),
-    noteClasses: jsonOrUndefined(options.noteClasses),
-    noteShapes: jsonOrUndefined(options.noteShapes),
+    noteClasses: stringifyPerStringCompact(options.noteClasses, stringCount),
+    noteShapes: stringifyPerStringCompact(options.noteShapes, stringCount),
     labelPitches: options.labelPitches,
     labelTuning: options.labelTuning,
     transpose: transposeField,

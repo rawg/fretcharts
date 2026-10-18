@@ -84,12 +84,13 @@
           <div class="field-label-row">
             <label>String labels</label>
             <div class="segmented segmented-sm" role="radiogroup" aria-label="String labels input mode">
-              <label><input type="radio" name="single-stringLabels-mode" value="text" />JSON</label>
+              <label><input type="radio" name="single-stringLabels-mode" value="text" />Text</label>
               <label><input type="radio" name="single-stringLabels-mode" value="per-string" checked />Per string</label>
             </div>
           </div>
           <div id="single-stringLabels-text-view" class="hidden">
-            <input type="text" id="single-stringLabels-text" placeholder='{"6":"R"}' />
+            <input type="text" id="single-stringLabels-text" placeholder="- - - 5 R 3" />
+            <p class="hint">One per string, low E first (<code>-</code> for none), or <code>3:b3 1:R</code>, or JSON.</p>
           </div>
           <div id="single-stringLabels-per-string-view">
             <div class="per-string-grid">
@@ -131,12 +132,12 @@
           <div class="field-label-row">
             <label>Note classes</label>
             <div class="segmented segmented-sm" role="radiogroup" aria-label="Note classes input mode">
-              <label><input type="radio" name="single-noteClasses-mode" value="text" checked />JSON</label>
+              <label><input type="radio" name="single-noteClasses-mode" value="text" checked />Text</label>
               <label><input type="radio" name="single-noteClasses-mode" value="per-string" />Per string</label>
             </div>
           </div>
           <div id="single-noteClasses-text-view">
-            <input type="text" id="single-noteClasses-text" placeholder='{"3":"root"}' />
+            <input type="text" id="single-noteClasses-text" placeholder="3:root" />
           </div>
           <div id="single-noteClasses-per-string-view" class="hidden">
             <div class="per-string-grid per-string-grid-wide">
@@ -154,12 +155,12 @@
           <div class="field-label-row">
             <label>Note shapes</label>
             <div class="segmented segmented-sm" role="radiogroup" aria-label="Note shapes input mode">
-              <label><input type="radio" name="single-noteShapes-mode" value="text" />JSON</label>
+              <label><input type="radio" name="single-noteShapes-mode" value="text" />Text</label>
               <label><input type="radio" name="single-noteShapes-mode" value="per-string" checked />Per string</label>
             </div>
           </div>
           <div id="single-noteShapes-text-view" class="hidden">
-            <input type="text" id="single-noteShapes-text" placeholder='{"3":"square"}' />
+            <input type="text" id="single-noteShapes-text" placeholder="3:square" />
             <p class="hint">Values: <code>circle</code>, <code>square</code>, <code>triangle</code>, <code>diamond</code>.</p>
           </div>
           <div id="single-noteShapes-per-string-view">
@@ -298,12 +299,13 @@
           <div class="field-label-row">
             <label>String labels</label>
             <div class="segmented segmented-sm" role="radiogroup" aria-label="String labels input mode">
-              <label><input type="radio" name="bulk-stringLabels-mode" value="text" />JSON</label>
+              <label><input type="radio" name="bulk-stringLabels-mode" value="text" />Text</label>
               <label><input type="radio" name="bulk-stringLabels-mode" value="per-string" checked />Per string</label>
             </div>
           </div>
           <div id="bulk-stringLabels-text-view" class="hidden">
-            <input type="text" id="bulk-stringLabels-text" placeholder='{"6":"R"}' />
+            <input type="text" id="bulk-stringLabels-text" placeholder="- - - 5 R 3" />
+            <p class="hint">One per string, low E first (<code>-</code> for none), or <code>3:b3 1:R</code>, or JSON.</p>
           </div>
           <div id="bulk-stringLabels-per-string-view">
             <div class="per-string-grid">
@@ -345,12 +347,12 @@
           <div class="field-label-row">
             <label>Note classes</label>
             <div class="segmented segmented-sm" role="radiogroup" aria-label="Note classes input mode">
-              <label><input type="radio" name="bulk-noteClasses-mode" value="text" checked />JSON</label>
+              <label><input type="radio" name="bulk-noteClasses-mode" value="text" checked />Text</label>
               <label><input type="radio" name="bulk-noteClasses-mode" value="per-string" />Per string</label>
             </div>
           </div>
           <div id="bulk-noteClasses-text-view">
-            <input type="text" id="bulk-noteClasses-text" placeholder='{"3":"root"}' />
+            <input type="text" id="bulk-noteClasses-text" placeholder="3:root" />
           </div>
           <div id="bulk-noteClasses-per-string-view" class="hidden">
             <div class="per-string-grid per-string-grid-wide">

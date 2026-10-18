@@ -20,6 +20,7 @@
  */
 
 import { compareVersions, isVersion } from '../src/version';
+import { stringCountFor, stringifyPerStringCompact } from '../src/chartFieldResolver';
 import { describe, it, expect } from 'vitest';
 import { JSDOM, VirtualConsole } from 'jsdom';
 import * as fs from 'fs';
@@ -50,6 +51,8 @@ function loadApp(url, { lastTab = 'tab-single' } = {}) {
     render: function () {
       return Promise.reject(new Error('no render stubbed for this test'));
     },
+    stringCountFor,
+    stringifyPerStringCompact,
   };
 
   // documentSync.js/app.js are loaded as <script src> tags in index.html,
@@ -824,6 +827,21 @@ describe('web UI: live document preview', () => {
   });
 });
 
+describe('web UI: per-string labels', () => {
+  it('per-string labels download as positional text sized to the tuning, using | around a space', async () => {
+    const window = loadApp();
+    window.document.getElementById('single-notation').value = '0212';
+    window.document.getElementById('single-tuning').value = 'GCEA';
+    window.document.querySelector('input[name="single-stringLabels-mode"][value="per-string"]').checked = true;
+    window.document.getElementById('single-stringLabels-string-3').value = 'R';
+    window.document.getElementById('single-stringLabels-string-2').value = '5';
+    window.document.getElementById('single-stringLabels-string-1').value = 'sus 4';
+
+    const text = await clickDownload(window, 'single');
+    expect(window.DocumentSync.parse(text).fields.stringLabels).toBe('-|R|5|sus 4');
+  });
+});
+
 describe('web UI: note shapes', () => {
   it("the Single chord tab's per-string Note shapes control (default mode) flows into the downloaded document", async () => {
     const window = loadApp();
@@ -835,9 +853,9 @@ describe('web UI: note shapes', () => {
     window.document.getElementById('single-noteShapes-string-6').value = 'square';
 
     const text = await clickDownload(window, 'single');
-    expect(text).toContain('noteShapes: "{\\"6\\":\\"square\\"}"');
+    expect(text).toContain('noteShapes: 6:square\n');
     const parsed = window.DocumentSync.parse(text);
-    expect(JSON.parse(parsed.fields.noteShapes)).toEqual({ 6: 'square' });
+    expect(parsed.fields.noteShapes).toBe('6:square');
   });
 
   it("the Single chord tab's Note shapes JSON view is an alternative to the per-string selects", async () => {

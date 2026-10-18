@@ -11,6 +11,9 @@ import { handleRequest, RenderOutput } from "../api";
 // For web/app.js: stamping downloaded FretCharts files, and spotting an
 // uploaded one from a newer release (see src/version.ts).
 export { VERSION, compareVersions, isVersion } from "../version";
+// For web/app.js's per-string inputs, so what they produce reads the same
+// as the CLI's and fretcharts-triads' output (e.g. "- - - 5 R 3").
+export { stringCountFor, stringifyPerStringCompact } from "../chartFieldResolver";
 
 export interface EngineResponse extends RenderOutput {
   format: "svg" | "png";
