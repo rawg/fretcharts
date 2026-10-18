@@ -1436,6 +1436,12 @@ function currentVersion() {
   return engine && engine.VERSION ? engine.VERSION : undefined;
 }
 
+function initVersionFooter() {
+  var slot = $('app-version');
+  var version = currentVersion();
+  if (slot && version) slot.textContent = ' v' + version;
+}
+
 // True when `version` (a parsed file's own `version` field) names a newer
 // release than this one. Anything that isn't a well-formed version is left
 // for the real parser behind /document to reject.
@@ -1923,6 +1929,7 @@ document.addEventListener('DOMContentLoaded', function () {
   initQuickExamples();
   initGallery();
   initStartPrint();
+  initVersionFooter();
   restoreLastTab();
   loadFromPermalink();
 });

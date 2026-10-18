@@ -182,7 +182,13 @@ export function renderNeckSvg(layout: NeckLayout, options?: NeckSvgRenderOptions
   // room -- unlike the chart label, which is positioned independently near
   // the very top of the canvas regardless of neckOriginY, so it never
   // collides with this band.
-  const fretNumberBandHeight = fretNumberLabels.length > 0 ? fretSpacing * 0.5 : 0;
+  // The band is tall enough that a label clears a dot on string 1 at its
+  // own fret: the dot reaches dotRadius above the string, and the label
+  // sits a small gap above that.
+  const fretNumberLabelFontSize = fretSpacing * 0.4;
+  const fretNumberLabelGap = 3;
+  const fretNumberBandHeight =
+    fretNumberLabels.length > 0 ? dotRadius + fretNumberLabelGap + fretNumberLabelFontSize : 0;
   const neckOriginY = marginTop + fretNumberBandHeight;
   const neckWidth = (lastFret - leftBoundaryFret) * fretSpacing;
   const neckHeight = (stringCount - 1) * stringSpacing;
@@ -403,8 +409,7 @@ export function renderNeckSvg(layout: NeckLayout, options?: NeckSvgRenderOptions
   // render/svg.ts's chord-fret-label (whose -N suffix means grid
   // row-position there, not an absolute fret number).
   if (fretNumberLabels.length > 0) {
-    const fretNumberLabelFontSize = fretSpacing * 0.4;
-    const y = neckOriginY - fretNumberBandHeight / 2;
+    const y = neckOriginY - dotRadius - fretNumberLabelGap - fretNumberLabelFontSize / 2;
     for (const f of fretNumberLabels) {
       const x = fretCenterX(f.fret);
       elements.push(
