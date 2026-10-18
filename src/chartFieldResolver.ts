@@ -8,6 +8,7 @@
 
 import { StringLabels, FingerPositions, FretBracket, NoteClasses, NoteMarker, NoteShape, NoteShapes } from "./types";
 import { parseFingerNumber, parseFingerPositions } from "./fingerPositions";
+import { DEFAULT_TUNING, parseTuning } from "./tuning";
 
 type StringNumber = 1 | 2 | 3 | 4 | 5 | 6;
 const STRING_NUMBERS: readonly StringNumber[] = [1, 2, 3, 4, 5, 6];
@@ -118,25 +119,18 @@ export interface ResolvedChartFields {
 
 /**
  * @throws {ChartInputError} if `stringLabels`/`noteClasses`/`noteShapes`
- *   isn't valid JSON or isn't a JSON object, if a `noteShapes` value isn't
+ *   is malformed in any of its forms (see parsePerStringText), if a `noteShapes` value isn't
  *   "circle"/"square"/"triangle"/"diamond", or if `root` isn't a valid
  *   string number/comma-separated list.
  * @throws {FingerPositionError} if `fingerPositions` is malformed, in
  *   either its JSON or notation form.
  */
 export function resolveChartFields(raw: RawChartFields): ResolvedChartFields {
+  const stringCount = stringCountFor(raw.tuning);
+
   let stringLabels: StringLabels | undefined;
   if (raw.stringLabels !== undefined) {
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw.stringLabels);
-    } catch {
-      throw new ChartInputError(`string-labels is not valid JSON: ${raw.stringLabels}`);
-    }
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-      throw new ChartInputError("string-labels must be a JSON object, e.g. '{\"3\":\"b3\"}'");
-    }
-    stringLabels = parsed as StringLabels;
+    stringLabels = parsePerStringText(raw.stringLabels, "string-labels", stringCount) as StringLabels;
   }
 
   const stringLabelOverrides = collectPerStringValues([
@@ -177,16 +171,7 @@ export function resolveChartFields(raw: RawChartFields): ResolvedChartFields {
 
   let noteClasses: NoteClasses | undefined;
   if (raw.noteClasses !== undefined) {
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw.noteClasses);
-    } catch {
-      throw new ChartInputError(`note-classes is not valid JSON: ${raw.noteClasses}`);
-    }
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-      throw new ChartInputError("note-classes must be a JSON object, e.g. '{\"3\":\"root\"}'");
-    }
-    noteClasses = parsed as NoteClasses;
+    noteClasses = parsePerStringText(raw.noteClasses, "note-classes", stringCount) as NoteClasses;
   }
 
   if (raw.root !== undefined) {
@@ -201,17 +186,9 @@ export function resolveChartFields(raw: RawChartFields): ResolvedChartFields {
 
   let noteShapes: NoteShapes | undefined;
   if (raw.noteShapes !== undefined) {
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw.noteShapes);
-    } catch {
-      throw new ChartInputError(`note-shapes is not valid JSON: ${raw.noteShapes}`);
-    }
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-      throw new ChartInputError("note-shapes must be a JSON object, e.g. '{\"3\":\"square\"}'");
-    }
+    const parsed = parsePerStringText(raw.noteShapes, "note-shapes", stringCount);
     noteShapes = {};
-    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+    for (const [key, value] of Object.entries(parsed)) {
       noteShapes[Number(key) as 1 | 2 | 3 | 4 | 5 | 6] = parseNoteShape(value, `note-shapes string ${key}`);
     }
   }
@@ -239,6 +216,145 @@ export function resolveChartFields(raw: RawChartFields): ResolvedChartFields {
     labelFrets: raw.labelFrets,
     brackets: raw.bracketsText !== undefined ? parseBrackets(raw.bracketsText) : undefined,
   };
+}
+
+/**
+ * The chord's string count, from `tuning` (default standard 6-string). A
+ * malformed tuning falls back to 6 here rather than throwing: it's
+ * reported, with its own error, wherever the tuning itself is parsed.
+ */
+export function stringCountFor(tuning: string | undefined): number {
+  if (tuning === undefined) return DEFAULT_TUNING.length;
+  try {
+    return parseTuning(tuning).length;
+  } catch {
+    return DEFAULT_TUNING.length;
+  }
+}
+
+/** The "no value for this string" placeholder in positional per-string text. */
+const NO_VALUE = "-";
+
+/**
+ * Parses one per-string text field (`string-labels`, `note-classes`,
+ * `note-shapes`) into string number -> value. Three forms, told apart by
+ * content:
+ *
+ * - JSON: starts with `{`, e.g. `{"1":"3","2":"R"}`.
+ * - Keyed: any entry contains `:`, e.g. `3:5 2:R 1:3` -- string number,
+ *   then the value after the first colon (so a value may itself contain
+ *   colons).
+ * - Positional: one entry per string, low string first like chord
+ *   notation, `-` for none, e.g. `- - - 5 R 3`. The entry count must
+ *   match `stringCount`.
+ *
+ * Entries are separated by whitespace, or by `|` whenever the text
+ * contains one -- the way to write a value with a space in it
+ * (`-|-|-|5|R|sus 4`). Exported so the web UI's tests and document
+ * writers can share the exact rules.
+ *
+ * @throws {ChartInputError} for invalid JSON, a non-object JSON value, an
+ *   out-of-range or repeated string number, a wrong positional count, or
+ *   an empty field.
+ */
+export function parsePerStringText(
+  text: string,
+  fieldName: string,
+  stringCount: number = DEFAULT_TUNING.length,
+): Record<number, string> {
+  const trimmed = text.trim();
+  if (trimmed.startsWith("{")) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(trimmed);
+    } catch {
+      throw new ChartInputError(`${fieldName} is not valid JSON: ${text}`);
+    }
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      throw new ChartInputError(`${fieldName} must be a JSON object, e.g. '{"3":"b3"}'`);
+    }
+    return parsed as Record<number, string>;
+  }
+
+  if (trimmed === "") {
+    throw new ChartInputError(`${fieldName} is empty`);
+  }
+  const entries = trimmed.includes("|") ? trimmed.split("|").map((e) => e.trim()) : trimmed.split(/\s+/);
+
+  const result: Record<number, string> = {};
+  if (entries.some((e) => e.includes(":"))) {
+    for (const entry of entries) {
+      if (entry === "") continue;
+      const colon = entry.indexOf(":");
+      const key = colon < 0 ? entry : entry.slice(0, colon);
+      const n = Number(key);
+      if (colon < 0 || !Number.isInteger(n) || n < 1 || n > stringCount) {
+        throw new ChartInputError(
+          `${fieldName}: ${JSON.stringify(entry)} should be a string number 1-${stringCount}, a colon, and a value, e.g. "3:b3"`,
+        );
+      }
+      if (n in result) {
+        throw new ChartInputError(`${fieldName}: string ${n} is given more than once`);
+      }
+      const value = entry.slice(colon + 1).trim();
+      if (value !== "") result[n] = value;
+    }
+    return result;
+  }
+
+  if (entries.length !== stringCount) {
+    throw new ChartInputError(
+      `${fieldName} has ${entries.length} ${entries.length === 1 ? "entry" : "entries"} but the chord has ${stringCount} strings: ` +
+        `give one per string, low string first, with "${NO_VALUE}" for none (e.g. "- - - 5 R 3"), or name strings ("1:3 2:R")`,
+    );
+  }
+  entries.forEach((value, i) => {
+    if (value !== "" && value !== NO_VALUE) result[stringCount - i] = value;
+  });
+  return result;
+}
+
+/**
+ * Writes string number -> value back as per-string text that
+ * parsePerStringText reads to the same result, in the most compact form
+ * that can hold it: positional (`- - - 5 R 3`) when `stringCount` is
+ * known and keyed (`3:diamond`) isn't shorter, otherwise keyed; `|`-separated when a value has
+ * whitespace; JSON as a last resort for a value positional/keyed text
+ * can't carry (one with a `|`, or that is exactly `-`). Undefined when
+ * there's nothing to write.
+ */
+export function stringifyPerStringCompact(
+  values: Partial<Record<number, string>> | undefined,
+  stringCount?: number,
+): string | undefined {
+  if (!values) return undefined;
+  const keys = Object.keys(values)
+    .map(Number)
+    .filter((n) => values[n] !== undefined && values[n] !== "")
+    .sort((a, b) => b - a);
+  if (keys.length === 0) return undefined;
+  const items = keys.map((n) => values[n] as string);
+
+  const outOfRange = stringCount !== undefined && keys.some((n) => !Number.isInteger(n) || n < 1 || n > stringCount);
+  if (outOfRange || items.some((v) => v.includes("|") || v.trim() !== v || v === NO_VALUE || v.startsWith("{"))) {
+    const json: Record<string, string> = {};
+    for (const n of keys.slice().sort((a, b) => a - b)) json[n] = values[n] as string;
+    return JSON.stringify(json);
+  }
+
+  const separator = items.some((v) => /\s/.test(v)) ? "|" : " ";
+  const keyed = keys.map((n) => `${n}:${values[n]}`).join(separator);
+  // A value containing ":" would read back as keyed text, so positional
+  // only works when none does.
+  if (stringCount !== undefined && !items.some((v) => v.includes(":"))) {
+    const entries: string[] = [];
+    for (let n = stringCount; n >= 1; n--) entries.push(values[n] ? (values[n] as string) : NO_VALUE);
+    const positional = entries.join(separator);
+    // Positional reads like the chord itself, so it wins ties; keyed wins
+    // for a value or two on a mostly-blank chord ("3:diamond").
+    return keyed.length < positional.length ? keyed : positional;
+  }
+  return keyed;
 }
 
 /** Parses "6" or "4,2" (whitespace ignored) into [6] or [4, 2]. `fieldName` names the caller's field for error text. */

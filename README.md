@@ -86,13 +86,13 @@ fretcharts [options] [notation]
 | Option | Description |
 |---|---|
 | `--label <text>` | Chart title, rendered above the grid. |
-| `--string-labels <json>` | Per-string labels rendered over the dot of a fretted note, e.g. `'{"3":"b3"}'`. Keyed by guitar string number (`"1"`..`"6"`, 6 = low E on the left, 1 = high E on the right) — never the array index. Silently ignored for open/muted strings. |
+| `--string-labels <labels>` | Per-string labels rendered over the dot of a fretted note, e.g. `"- - - 5 R 3"` or `"3:b3"`. See [Per-string values](#per-string-values) for the forms. Silently ignored for open/muted strings. |
 | `--string-label-1` .. `--string-label-6 <text>` | Set (or override) just one string's label at a time, e.g. `--string-label-6 R`. Wins over a same-numbered entry in `--string-labels` when both are given. |
 | `--finger-positions <value>` | Finger numbers (1–5) rendered below the bottom-most fret, under their string. Either a JSON object keyed by string number (`'{"6":"1"}'`) or chord-notation-style shorthand where digits are finger numbers instead of frets (`"xx0321"` → string 3 = finger 3, string 2 = finger 2, string 1 = finger 1). Never applied to open/muted strings. |
 | `--finger-position-1` .. `--finger-position-6 <n>` | Set (or override) just one string's finger number (1–5) at a time, e.g. `--finger-position-6 3`. Wins over a same-numbered entry in `--finger-positions` when both are given. |
-| `--note-classes <json>` | Adds a custom CSS class to a string's sounding note (a fretted dot or an open-string circle — never a muted string), e.g. `'{"3":"root"}'`. Pairs with `--stylesheet` to style something like "the root note" consistently across many charts even as its string position varies between inversions. |
+| `--note-classes <classes>` | Adds a custom CSS class to a string's sounding note (a fretted dot or an open-string circle — never a muted string), e.g. `"3:root"`. Same [per-string](#per-string-values) forms as `--string-labels`. Pairs with `--stylesheet` to style something like "the root note" consistently across many charts even as its string position varies between inversions. |
 | `--root <strings>` | Shorthand for `--note-classes` that tags the given string(s) with the `root` class — a single string number (`"6"`) or a comma-separated list (`"4,2"`, whitespace ignored). `--note-classes` wins over `--root` if both target the same string. |
-| `--note-shapes <json>` | Sets a string's sounding fretted note to `"circle"` (the default), `"square"`, `"triangle"`, or `"diamond"`, e.g. `'{"3":"square"}'`. Only applies to a fretted dot, never an open-string circle or a muted string's glyph. |
+| `--note-shapes <shapes>` | Sets a string's sounding fretted note to `"circle"` (the default), `"square"`, `"triangle"`, or `"diamond"`, e.g. `"3:square"`. Same [per-string](#per-string-values) forms as `--string-labels`. Only applies to a fretted dot, never an open-string circle or a muted string's glyph. |
 | `--tuning <notation>` | Tuning, low string first, e.g. `"DADGBE"` (drop D) or `"BEADF#B"` (baritone B). Each note is a capital letter A–G optionally followed by `b` (flat) or `#` (sharp). The tuning's length sets the chord's string count. Defaults to standard `EADGBE`. |
 | `--label-pitches` | Auto-labels each fretted note with its computed pitch (e.g. `"F#"`), using `--tuning`. Never applied to open strings. An explicit `--string-labels` entry for a string wins over its computed pitch. Also works in scale-chart/neck-diagram mode (`--notes`), where a marker's own explicit label wins the same way. |
 | `--label-tuning` | Labels *every* string with its open pitch from `--tuning`, above the mute/open indicators and below the chart title. Unlike `--label-pitches`, this applies unconditionally — it shows what the string is tuned to, not what's currently sounding. |
@@ -130,10 +130,13 @@ fretcharts x02220
 fretcharts 320003 --label "G" --output g.png
 
 # Finger positions and a per-string label
-fretcharts 320003 --label "G" --finger-positions "3xxxxx" --string-labels '{"6":"R"}'
+fretcharts 320003 --label "G" --finger-positions "3xxxxx" --string-labels "6:R"
 
-# Same thing, set one string at a time instead of via JSON
+# Same thing, set one string at a time
 fretcharts 320003 --label "G" --finger-position-6 3 --string-label-6 R
+
+# Interval labels on every fretted string, low E first
+fretcharts 320003 --label "G" --string-labels "R 3 - - 3 R"
 
 # Drop D tuning, with computed pitch labels
 fretcharts 0xxxxx --tuning "DADGBE" --label-pitches --label "D (open)"
@@ -146,6 +149,27 @@ fretcharts x32010 --root 5 --stylesheet root.css --output c.png
 fretcharts --notes "6:3:R:root;6:5:2;5:2:b3;5:5:4" --muted 1,2 \
   --label "Minor Pentatonic Box (partial)" --output scale.png
 ```
+
+### Per-string values
+
+`--string-labels`, `--note-classes`, and `--note-shapes` give a value per
+string. The same forms work in a bulk CSV column and in a FretCharts file.
+Each takes any of three forms, recognized by what you write:
+
+| Form | Example | Reads as |
+|---|---|---|
+| Positional | `- - - 5 R 3` | One entry per string, low string first like chord notation, `-` for none. The count must match the string count (6, or the `--tuning` length). |
+| Keyed | `3:5 2:R 1:3` | String number, a colon, the value, in any order. Handy for one or two strings: `3:diamond`. |
+| JSON | `{"3":"5","2":"R","1":"3"}` | Starts with `{`. |
+
+Entries are separated by spaces, or by `|` whenever the text contains one,
+which is how to write a value with a space in it: `-|-|-|5|R|sus 4` or
+`3:5|1:sus 4`. A keyed value may contain colons (`2:a:b` is `a:b` on
+string 2).
+
+Files written by `--output`, the web UI, and `fretcharts-triads` use
+positional text, or keyed when that's shorter, and fall back to JSON only
+for a value neither can hold (one containing `|`, or exactly `-`).
 
 ## Scale charts
 
@@ -497,10 +521,10 @@ fretcharts --bulk triads.csv --output triads.png
 
 ```csv
 notes,label,root,string-labels
-x-x-x-11-10-10,D,1,"{""1"":""R"",""2"":""5"",""3"":""3""}"
-x-x-x-11-12-10,Bm,2,"{""1"":""b3"",""2"":""R"",""3"":""5""}"
-x-x-x-12-12-10,G,3,"{""1"":""5"",""2"":""3"",""3"":""R""}"
-x-x-x-9-10-9,A,2,"{""1"":""3"",""2"":""R"",""3"":""5""}"
+x-x-x-11-10-10,D,1,- - - 3 5 R
+x-x-x-11-12-10,Bm,2,- - - 5 R b3
+x-x-x-12-12-10,G,3,- - - R 3 5
+x-x-x-9-10-9,A,2,- - - 5 R 3
 ```
 
 Every triad uses one group of three **adjacent** strings, and the same group
