@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { parseChordSymbol } from "./chordSymbol";
+import { resolveChartFields } from "./chartFieldResolver";
 import { DEFAULT_TUNING, parseTuning, pitchAt } from "./tuning";
 import {
   findTriads,
@@ -145,11 +146,20 @@ describe("formatVoicing", () => {
 });
 
 describe("progressionToCsv", () => {
-  it("writes FretCharts bulk columns, quoting the JSON labels", () => {
+  it("writes FretCharts bulk columns, with positional interval labels", () => {
     const csv = progressionToCsv(search(["G"], { strings: [1, 2, 3], floor: { kind: "fret", fret: 1 } }));
     const [header, row] = csv.trim().split("\n");
     expect(header).toBe("notes,label,root,string-labels");
-    expect(row).toMatch(/^xxx\d+,G,[123],"\{.*""R"".*\}"$/);
+    expect(row).toMatch(/^xxx\d+,G,[123],- - - (R|3|5) (R|3|5) (R|3|5)$/);
+  });
+
+  it("writes labels that read back for the tuning's string count", () => {
+    const progression = search(["G"], { strings: [5, 6, 7], tuning: parseTuning("BEADGBE") });
+    const csv = progressionToCsv(progression, "BEADGBE");
+    const labels = csv.split("\n")[1].split(",")[3];
+    expect(resolveChartFields({ stringLabels: labels, tuning: "BEADGBE" }).stringLabels).toEqual(
+      progression.voicings[0].intervals,
+    );
   });
 
   it("adds a tuning column when given", () => {

@@ -7,6 +7,8 @@ import {
   stringifyNoteMarkersCompact,
   parseBrackets,
   stringifyBracketsCompact,
+  parsePerStringText,
+  stringifyPerStringCompact,
 } from "./chartFieldResolver";
 import { FingerPositionError } from "./fingerPositions";
 
@@ -501,5 +503,97 @@ describe("parseBrackets", () => {
   it("is wired through resolveChartFields as bracketsText", () => {
     expect(resolveChartFields({ bracketsText: "2-5:C" }).brackets).toEqual([{ startFret: 2, endFret: 5, label: "C" }]);
     expect(resolveChartFields({}).brackets).toBeUndefined();
+  });
+});
+
+describe("parsePerStringText (string-labels/note-classes/note-shapes)", () => {
+  it("reads positional text low string first, with - for none", () => {
+    expect(parsePerStringText("- - - 5 R 3", "string-labels")).toEqual({ 3: "5", 2: "R", 1: "3" });
+  });
+
+  it("reads keyed text, in any order", () => {
+    expect(parsePerStringText("1:3  3:5 2:R", "string-labels")).toEqual({ 3: "5", 2: "R", 1: "3" });
+  });
+
+  it("still reads JSON", () => {
+    expect(parsePerStringText('{"6":"R"}', "string-labels")).toEqual({ 6: "R" });
+  });
+
+  it("splits on | instead of whitespace when the text has one, so values can hold spaces", () => {
+    expect(parsePerStringText("-|-|-|5|R|sus 4", "string-labels")).toEqual({ 3: "5", 2: "R", 1: "sus 4" });
+    expect(parsePerStringText("3:5 | 1:sus 4", "string-labels")).toEqual({ 3: "5", 1: "sus 4" });
+  });
+
+  it("keeps everything after a keyed entry's first colon", () => {
+    expect(parsePerStringText("2:a:b", "string-labels")).toEqual({ 2: "a:b" });
+  });
+
+  it("sizes positional text to the string count", () => {
+    expect(parsePerStringText("R 3 5 R", "string-labels", 4)).toEqual({ 4: "R", 3: "3", 2: "5", 1: "R" });
+    expect(() => parsePerStringText("5 R 3", "string-labels")).toThrow(/3 entries but the chord has 6 strings/);
+  });
+
+  it("rejects out-of-range and repeated keyed strings", () => {
+    expect(() => parsePerStringText("7:R", "string-labels")).toThrow(ChartInputError);
+    expect(() => parsePerStringText("1:R 1:3", "string-labels")).toThrow(/more than once/);
+    expect(() => parsePerStringText("1:R b3", "string-labels")).toThrow(ChartInputError);
+  });
+
+  it("rejects empty text", () => {
+    expect(() => parsePerStringText("  ", "string-labels")).toThrow(/empty/);
+  });
+
+  it("is what resolveChartFields uses, sized by the tuning", () => {
+    expect(resolveChartFields({ stringLabels: "R 3 5 R", tuning: "EADG" }).stringLabels).toEqual({
+      4: "R",
+      3: "3",
+      2: "5",
+      1: "R",
+    });
+    expect(resolveChartFields({ noteClasses: "- - - - - root" }).noteClasses).toEqual({ 1: "root" });
+    expect(resolveChartFields({ noteShapes: "6:square" }).noteShapes).toEqual({ 6: "square" });
+    expect(() => resolveChartFields({ noteShapes: "6:blob" })).toThrow(/invalid shape/);
+  });
+});
+
+describe("stringifyPerStringCompact", () => {
+  const roundTrip = (values: Record<number, string>, stringCount?: number) =>
+    parsePerStringText(stringifyPerStringCompact(values, stringCount)!, "test", stringCount);
+
+  it("writes positional text when the string count is known", () => {
+    expect(stringifyPerStringCompact({ 1: "3", 2: "R", 3: "5" }, 6)).toBe("- - - 5 R 3");
+  });
+
+  it("writes keyed text, high string number first, without a string count", () => {
+    expect(stringifyPerStringCompact({ 1: "3", 3: "5" })).toBe("3:5 1:3");
+  });
+
+  it("writes keyed text instead when that's shorter", () => {
+    expect(stringifyPerStringCompact({ 3: "diamond" }, 6)).toBe("3:diamond");
+    expect(stringifyPerStringCompact({ 4: "3", 3: "5", 2: "R" }, 6)).toBe("- - 3 5 R -");
+  });
+
+  it("switches to | when a value has a space", () => {
+    expect(stringifyPerStringCompact({ 1: "sus 4", 2: "R", 3: "5" }, 6)).toBe("-|-|-|5|R|sus 4");
+    expect(stringifyPerStringCompact({ 1: "sus 4" }, 6)).toBe("1:sus 4");
+  });
+
+  it("falls back to keyed for a value with a colon, and JSON for one it can't carry", () => {
+    expect(stringifyPerStringCompact({ 2: "a:b" }, 6)).toBe("2:a:b");
+    expect(stringifyPerStringCompact({ 2: "a|b" }, 6)).toBe('{"2":"a|b"}');
+    expect(stringifyPerStringCompact({ 2: "-" }, 6)).toBe('{"2":"-"}');
+  });
+
+  it("returns undefined for nothing to write", () => {
+    expect(stringifyPerStringCompact(undefined, 6)).toBeUndefined();
+    expect(stringifyPerStringCompact({}, 6)).toBeUndefined();
+  });
+
+  it("round-trips through parsePerStringText", () => {
+    const cases: Record<number, string>[] = [{ 1: "3", 2: "R", 3: "5" }, { 6: "sus 4", 1: "R" }, { 2: "a:b" }, { 2: "a|b" }, { 4: "-" }];
+    for (const values of cases) {
+      expect(roundTrip(values, 6)).toEqual(values);
+      expect(roundTrip(values)).toEqual(values);
+    }
   });
 });

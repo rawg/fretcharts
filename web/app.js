@@ -109,9 +109,12 @@ function initJsonOrPerStringField(prefix) {
   update();
 }
 
-// Returns JSON text ready to send to the renderer (built from the 6 per-string
+// Returns text ready to send to the renderer (built from the 6 per-string
 // inputs if that mode is active, otherwise the raw text input as-is), or
 // '' if nothing was entered -- matching collectFields' "omit if blank" rule.
+// Per-string inputs become compact text like "- - - 5 R 3" (see
+// parsePerStringText in src/chartFieldResolver.ts), except fingerPositions,
+// whose own notation is different and stays JSON.
 function getJsonOrPerStringValue(prefix) {
   if (isPerStringMode(prefix)) {
     var obj = {};
@@ -122,10 +125,25 @@ function getJsonOrPerStringValue(prefix) {
         obj[n] = value;
       }
     });
-    return Object.keys(obj).length > 0 ? JSON.stringify(obj) : '';
+    if (Object.keys(obj).length === 0) return '';
+    var engine = window.ChordChartsEngine;
+    if (!/-fingerPositions$/.test(prefix) && engine && engine.stringifyPerStringCompact) {
+      return engine.stringifyPerStringCompact(obj, perStringCount(prefix));
+    }
+    return JSON.stringify(obj);
   }
   var textEl = $(prefix + '-text');
   return textEl ? textEl.value.trim() : '';
+}
+
+// The string count positional per-string text is written for: the form's
+// tuning when it has one, else 6. Fields are prefixed "<form>-<name>".
+// A value typed for a string the tuning doesn't have makes
+// stringifyPerStringCompact fall back to JSON, so it isn't silently lost.
+function perStringCount(prefix) {
+  var tuningEl = $(prefix.split('-')[0] + '-tuning');
+  var tuning = tuningEl && tuningEl.value.trim() !== '' ? tuningEl.value.trim() : undefined;
+  return window.ChordChartsEngine.stringCountFor(tuning);
 }
 
 // Reads all 3 JSON-or-per-string fields for a form (prefixed "single" or

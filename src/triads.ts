@@ -24,7 +24,8 @@
 
 import { Chord, lowestFret } from "./chordparse";
 import { ChordSymbol } from "./chordSymbol";
-import { noteToSemitone } from "./tuning";
+import { DEFAULT_TUNING, noteToSemitone, parseTuning } from "./tuning";
+import { stringifyPerStringCompact } from "./chartFieldResolver";
 
 export class TriadSearchError extends Error {
   constructor(message: string) {
@@ -347,8 +348,10 @@ function csvCell(value: string): string {
 export function progressionToCsv(progression: TriadProgression, tuning?: string): string {
   const header = ["notes", "label", "root", "string-labels"];
   if (tuning !== undefined) header.push("tuning");
+  const stringCount = (tuning !== undefined ? parseTuning(tuning) : DEFAULT_TUNING).length;
   const rows = progression.voicings.map((v) => {
-    const row = [formatVoicing(v.frets), v.chord.symbol, String(v.rootString), JSON.stringify(v.intervals)];
+    const labels = stringifyPerStringCompact(v.intervals, stringCount) ?? "";
+    const row = [formatVoicing(v.frets), v.chord.symbol, String(v.rootString), labels];
     if (tuning !== undefined) row.push(tuning);
     return row.map(csvCell).join(",");
   });

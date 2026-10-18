@@ -279,7 +279,7 @@ export function buildBulkGrid(
     // wraps the whole field in quotes and doubles any quote inside it.
     const message = err instanceof Error ? err.message : String(err);
     throw new ChartInputError(
-      `CSV parse error: ${message}. If a field's value contains a double quote (e.g. JSON like {"6":"R"}), wrap the whole field in quotes and double each internal quote: "{""6"":""R""}".`,
+      `CSV parse error: ${message}. If a field's value contains a double quote (e.g. JSON like {"6":"R"}), wrap the whole field in quotes and double each internal quote: "{""6"":""R""}" -- or use the quote-free form, e.g. 6:R or - - - 5 R 3.`,
     );
   }
 
